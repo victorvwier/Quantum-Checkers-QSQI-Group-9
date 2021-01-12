@@ -1,7 +1,6 @@
 import pygame
-from checkers.constants import *
-from checkers.board import Board
-from checkers.game import Game
+from initial_checkers.checkers.constants import *
+from initial_checkers.checkers.game import Game
 
 win = pygame.display.set_mode((Width,Height))
 pygame.display.set_caption('Checkers')
