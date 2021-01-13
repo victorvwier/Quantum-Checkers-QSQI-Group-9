@@ -24,3 +24,5 @@ b.print_board()
 print("Performing a collapse on position (0,2)...")
 b.collapse(Position(0, 2))
 b.print_board()
+
+print("hello")
