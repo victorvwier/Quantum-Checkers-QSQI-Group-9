@@ -1,6 +1,6 @@
 import pygame
 from Constants import Rows,Cols,Piece_Rows,Square_Size,Grey,\
-    Board_Brown,Board_White,Red,Green,White,Black
+    Board_Brown,Board_White,Red,Green,White,Black,Blue
 from QuantumCircuit import Quantumcircuit
 import numpy as np
 
@@ -12,13 +12,18 @@ class Board:
         self.board = np.zeros((Rows,Cols))
         self.board_color = np.zeros((Rows,Cols))
         self.white_left = self.black_left = Cols*Piece_Rows//2
-        self.update_board()
         self.qmode = False
+        self.chmode = True
         
-    def update_board(self):
+    def update_board(self, backend):
+    
+        #self.Qcirc.Qboard = self.Qcirc.get_probability_comp(backend=backend)
         
-        for i in range (self.n_tiles):
-            self.Qcirc.Qboard[i]= self.Qcirc.get_probability(i)
+        # for i in range (self.n_tiles):
+        #     self.Qcirc.Qboard[i] = self.Qcirc.get_probability_exact(i)
+        
+        self.Qcirc.Qboard = self.Qcirc.get_probability_exact2()
+        
         j = 0
         for row in range(Rows):
             for col in range (row % 2,Rows,2):
@@ -36,8 +41,10 @@ class Board:
                                 col*Square_Size,Square_Size,Square_Size))
         pygame.draw.rect(win,Grey,((Rows-1)*Square_Size,0\
                         ,Square_Size,Square_Size))
+        pygame.draw.rect(win,Grey,(0,(Cols-1)*Square_Size\
+                        ,Square_Size,Square_Size))
         
-    def draw_entangle_button(self, win ):
+    def draw_buttons(self, win ):
         pygame.font.init()
         myfont = pygame.font.SysFont('Arial', 18)
         if self.qmode == False:
@@ -50,6 +57,14 @@ class Board:
             win.blit(textsurface,((Rows-1)*Square_Size+10,5))
             textsurface = myfont.render('Q_mode', False, Red)
             win.blit(textsurface,((Rows-1)*Square_Size+10,30))
+        if self.chmode == False:
+            textsurface = myfont.render('Entangle', False, Black)
+            win.blit(textsurface,(10,(Cols-1)*Square_Size+5))
+        else:
+            textsurface = myfont.render('Change', False, Black)
+            win.blit(textsurface,(10,(Cols-1)*Square_Size+5))
+        textsurface = myfont.render('Q_mode', False, Black)
+        win.blit(textsurface,(10,(Cols-1)*Square_Size+30))
         
     def draw_pieces(self,win):
         radius = 30
@@ -73,6 +88,13 @@ class Board:
         pygame.draw.circle(shape_surf, color, (radius, radius), radius)
         surface.blit(shape_surf, target_rect)
         
+    def draw_possible_moves(self,win,moves):
+
+        for move in moves:
+            row,col = move
+            pygame.draw.circle(win,Blue,(col*Square_Size+Square_Size//2\
+                               ,row*Square_Size+Square_Size//2),15)        
+        
     def check_valid_moves(self,selected_piece):
         
         moves = {}
@@ -91,6 +113,7 @@ class Board:
             
         return moves
     
+    
     def _traverse_left(self,start,stop,step,color,left,skipped=[]):
         moves = {}
         last = []
@@ -98,7 +121,7 @@ class Board:
             if left < 0:
                 break
             
-            current = self.board[r][left]
+            current = self.board_color[r][left]
             if current == 0:
                 if skipped and not last:
                     break
@@ -117,7 +140,13 @@ class Board:
                     moves.update(self._traverse_right(r+step,row,step,color,left+1,skipped=last))
                 break
                         
-            elif current.color == color:
+            elif current == color:
+                if self.board[r][left] < 0.95:
+                    moves[(r,left)] = last
+                    break
+                else:
+                    break
+                
                 break
             
             else:
@@ -134,7 +163,7 @@ class Board:
             if right >= Cols:
                 break
             
-            current = self.board[r][right]
+            current = self.board_color[r][right]
             if current == 0:
                 if skipped and not last:
                     break
@@ -153,8 +182,12 @@ class Board:
                     moves.update(self._traverse_right(r+step,row,step,color,right+1,skipped=last))
                 break
                         
-            elif current.color == color:
-                break
+            elif current == color:
+                if self.board[r][right] < 0.95:
+                    moves[(r,right)] = last
+                    break
+                else:
+                    break
             
             else:
                 last = [current]

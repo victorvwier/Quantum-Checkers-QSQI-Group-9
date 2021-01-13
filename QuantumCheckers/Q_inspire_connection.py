@@ -2,12 +2,21 @@ import os
 from getpass import getpass
 from quantuminspire.credentials import load_account, get_token_authentication, get_basic_authentication
 
-from qiskit import execute
+
+
+from quantuminspire.qiskit import QI
 
 
 QI_EMAIL = os.getenv('QI_EMAIL')
 QI_PASSWORD = os.getenv('QI_PASSWORD')
 QI_URL = os.getenv('API_URL', 'https://api.quantum-inspire.com/')
+
+def fix_connection():
+    authentication = get_authentication()
+    QI.set_authentication(authentication, QI_URL)
+    qi_backend = QI.get_backend('QX single-node simulator')
+    return qi_backend
+    
 
 def get_authentication():
     """ Gets the authentication for connecting to the Quantum Inspire API."""

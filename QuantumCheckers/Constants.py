@@ -1,7 +1,7 @@
 
 
-Rows=4
-Cols=4
+Rows=6
+Cols=6
 Piece_Rows = 1
 
 Width,Height = Rows*100, Cols*100
