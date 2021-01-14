@@ -53,7 +53,6 @@ class game():
     def change_selected_piece(self,row,col):
         self.selected_piece = (row,col)
         self.pos_moves = Board.check_valid_moves(self.selected_piece)
-        print(self.pos_moves)
         self.q_counter = 0
         
     def perform_c_empty(self,row,col):
@@ -80,7 +79,7 @@ class game():
             # Board.Qcirc.sqrtswap(Convert_to_Q(self.selected_piece),\
             
             Board.Qcirc.q_empty(Convert_to_Q(self.selected_piece),\
-                                  Convert_to_Q(self.new_pos1), Convert_to_Q(self.new_pos2))                     # Convert_to_Q(self.new_pos1), Convert_to_Q(self.new_pos2))
+                                  Convert_to_Q(self.new_pos1), Convert_to_Q(self.new_pos2))
             self.selected = 0
             self.q_counter = 0
             self.turn = -self.turn
@@ -135,7 +134,6 @@ def main():
                         if Board.board_color[row][col] == 0:
                             game.perform_c_empty(row,col)
                         elif Board.board_color[row][col] == game.turn:
-                            print('ja')
                             game.perform_c_own_color(row,col)
                         
                 elif game.selected == 1 and Board.board_color[row][col] ==0 and \

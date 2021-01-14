@@ -55,9 +55,7 @@ class Quantumcircuit:
         for i in range (tot_numb):
             temp = bin(i).replace("0b","")
             self.binary_array[i,:] = list(temp.rjust(self.numb,'0'))
-        self.binary_array.astype(np.int)
-        print (self.binary_array.astype(np.int))
-    
+        self.binary_array.astype(np.int)   
         
         
     def c_empty (self, old_pos, new_pos):
