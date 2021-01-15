@@ -148,32 +148,37 @@ class Board:
     def _traverse_left(self, start, stop, step, color, left, skipped=[]):
         moves = {}
         last = []
+        where_in = -1
         for r in range(start, stop, step):
+            where_in+=1
             if left < 0:
                 break
-            
             currentc = self.board_color[r][left]
             currentp = self.board[r][left]
             
-            if currentc == 0 and len(last) == 0:
-                moves[(r,left)] = last
-                break
-            elif currentc == color and len(last) == 0 and currentp<0.98:
-                moves[(r,left)]= last
-                break
-            elif currentc == -color and len(last)==0:
-                last = (r,left)
-            elif len(last) != 0 and self.qmode==False:
-                if currentp > 0.98:
+            if where_in ==0:
+                if currentc == 0 and len(last) == 0 and len(skipped)==0:
+                    moves[(r,left)] = last
                     break
-                else:
-                    moves[(r,left)] = [last[0],last[1]]
-                    if color == 1:
-                        row = min(r + 3, Rows)
+                elif currentc == color and len(last) == 0 and currentp<0.98\
+                    and len(skipped)==0:
+                        
+                    moves[(r,left)]= last
+                    break
+                elif currentc == -color and len(last)==0:
+                    last = (r,left)
+            else:
+                if len(last) != 0 and self.qmode==False:
+                    if currentp > 0.98:
+                        break
                     else:
-                        row = max(r - 3, 0)
-                    #moves.update(self._traverse_left(r + step, row, step, color, left - 1, skipped=last))
-                    #moves.update(self._traverse_right(r + step, row, step, color, left + 1, skipped=last))
+                        moves[(r,left)] = skipped+[last[0],last[1]]
+                        if color == 1:
+                            row = min(r + 3, Rows)
+                        else:
+                            row = max(r - 3, -1)
+                        moves.update(self._traverse_left(r + step, row, step, color, left - 1, skipped=list(last)))
+                        moves.update(self._traverse_right(r + step, row, step, color, left + 1, skipped=list(last)))
                         
             left -= 1
 
@@ -182,32 +187,37 @@ class Board:
     def _traverse_right(self, start, stop, step, color, right, skipped=[]):
         moves = {}
         last = []
+        where_in = -1
         for r in range(start, stop, step):
             if right >= Cols:
                 break
-            
+            where_in += 1
             currentc = self.board_color[r][right]
             currentp = self.board[r][right]
             
-            if currentc == 0 and len(last) == 0:
-                moves[(r,right)] = last
-                break
-            elif currentc == color and len(last) == 0 and currentp<0.98:
-                moves[(r,right)]= last
-                break
-            elif currentc == -color and len(last)==0:
-                last = (r,right)
-            elif len(last) != 0 and self.qmode==False:
-                if currentp > 0.98:
+            if where_in == 0:
+                if currentc == 0 and len(last) == 0 and len(skipped)==0:
+                    moves[(r,right)] = last
                     break
-                else:
-                    moves[(r,right)] = [last[0],last[1]]
-                    if color == 1:
-                        row = min(r + 3, Rows)
+                elif currentc == color and len(last) == 0 and currentp<0.98\
+                    and len(skipped)==0:
+                        
+                    moves[(r,right)]= last
+                    break
+                elif currentc == -color and len(last)==0:
+                    last = (r,right)
+            else:
+                if len(last) != 0 and self.qmode==False:
+                    if currentp > 0.98:
+                        break
                     else:
-                        row = max(r - 3, 0)
-                        #moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped=last))
-                        #moves.update(self._traverse_right(r + step, row, step, color, right + 1, skipped=last))
+                        moves[(r,right)] = skipped + [last[0],last[1]]
+                        if color == 1:
+                            row = min(r + 3, Rows)
+                        else:
+                            row = max(r - 3, -1)
+                            moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped=list(last)))
+                            moves.update(self._traverse_right(r + step, row, step, color, right + 1, skipped=list(last)))
                         
             right += 1
 

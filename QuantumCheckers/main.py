@@ -54,42 +54,66 @@ class game():
     def perform_c_move(self, row, col):
         clicked = (row, col)
         failed_attack = False
+        behind = None
 
         if len(game.pos_moves[clicked]) == 0:
             if Board.board_color[row][col] == 0:
                 game.perform_c_empty(row, col)
             elif Board.board_color[row][col] == game.turn and Board.board[row][col] < 0.9:
                 game.perform_c_own_color(row, col)
+            Board.update_board()
         else:
             while not (failed_attack) and len(self.pos_moves[clicked]) != 0:
                 defend = self.pos_moves[clicked][0:2]
                 defender = (defend[0],defend[1])
+                
                 del self.pos_moves[clicked][0:2]
-                suc_a, suc_b,suc_c = Board.Qcirc.full_collapse(game.Convert_to_Q(game.selected_piece), \
-                                                         game.Convert_to_Q(defender),game.Convert_to_Q(clicked))
-                Board.update_board()
+                
+                if len(self.pos_moves[clicked]) != 0:
+                    aanvaller = game.selected_piece
+                    if defend[0]-game.selected_piece[0]<0 and defend[1]-game.selected_piece[1]<0:
+                        behind = (defend[0]-1,defend[1]-1)
+                    elif defend[0]-game.selected_piece[0]>0 and defend[1]-game.selected_piece[1]<0:
+                        behind = (defend[0]+1,defend[1]-1)
+                    elif defend[0]-game.selected_piece[0]<0 and defend[1]-game.selected_piece[1]>0:
+                        behind = (defend[0]-1,defend[1]+1)
+                    else:
+                        behind = (defend[0]+1,defend[1]+1)
+                else:
+                    aanvaller = behind
+                    behind = clicked
+                    
+                print(behind)
+                
+                suc_a, suc_b,suc_c = Board.Qcirc.full_collapse(game.Convert_to_Q(aanvaller), \
+                                                         game.Convert_to_Q(defender),game.Convert_to_Q(behind))
                 
                 if suc_a == 0:
                     failed_attack = True
                     if suc_b == 0:
                         Board.board_color[defender[0]][defender[1]] = 0
-                    Board.board_color[game.selected_piece[0]][game.selected_piece[1]]
+                    Board.board_color[aanvaller[0]][aanvaller[1]]
                 elif suc_b == 0:
                     game.perform_c_empty(defender[0], defender[1])
                 elif suc_b == 1 and suc_c ==0:
-                    game.perform_c_empty(clicked[0], clicked[1])
+                    game.perform_c_empty(behind[0], behind[1], other=aanvaller)
                     Board.Qcirc.remove_collapsed_piece(game.Convert_to_Q(defender))
                     Board.board_color[defender[0]][defender[1]]=0
 
+                    
+                Board.update_board()
+            
         self.selected = 0
         self.turn = -self.turn
-        Board.update_board()
         game.update()
         Board.move_sound()
 
-    def perform_c_empty(self, row, col):
+    def perform_c_empty(self, row, col,other = False):
         new_position = (row, col)
-        Board.Qcirc.c_empty(Convert_to_Q(game.selected_piece), Convert_to_Q(new_position))
+        if other == False:
+            Board.Qcirc.c_empty(Convert_to_Q(game.selected_piece), Convert_to_Q(new_position))
+        else:
+            Board.Qcirc.c_empty(Convert_to_Q(other),Convert_to_Q(new_position))
 
 
     def perform_c_own_color(self, row, col):
@@ -165,8 +189,7 @@ def main():
                 elif game.selected == 1 and Board.qmode == False and game.move_allowed(row, col):
                     game.perform_c_move(row, col)
 
-                elif game.selected == 1 and Board.board_color[row][col] == 0 and \
-                        Board.qmode == True and game.move_allowed(row, col):
+                elif game.selected == 1 and Board.qmode == True and game.move_allowed(row, col):
                     game.perform_q_move(row, col)
         game.update()
 
