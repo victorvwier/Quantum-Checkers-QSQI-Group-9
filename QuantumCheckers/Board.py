@@ -6,16 +6,16 @@ import numpy as np
 
 class Board:
     
-    def __init__(self):
+    def __init__(self,backend):
         self.n_tiles = Rows*Cols//2
-        self.Qcirc = Quantumcircuit(Rows,Cols,Piece_Rows)
+        self.Qcirc = Quantumcircuit(Rows,Cols,Piece_Rows,backend)
         self.board = np.zeros((Rows,Cols))
         self.board_color = np.zeros((Rows,Cols))
         self.white_left = self.black_left = Cols*Piece_Rows//2
         self.qmode = False
         self.chmode = True
         
-    def update_board(self, backend):
+    def update_board(self):
     
         #self.Qcirc.Qboard = self.Qcirc.get_probability_comp(backend=backend)
         
@@ -93,7 +93,9 @@ class Board:
         for move in moves:
             row,col = move
             pygame.draw.circle(win,Blue,(col*Square_Size+Square_Size//2\
-                               ,row*Square_Size+Square_Size//2),15)        
+                               ,row*Square_Size+Square_Size//2),15)
+                
+
         
     def check_valid_moves(self,selected_piece):
         
@@ -150,7 +152,8 @@ class Board:
                 break
             
             else:
-                last = [current]
+                #last = [current]
+                last = [r,left]
             
             
             left -= 1
@@ -190,7 +193,8 @@ class Board:
                     break
             
             else:
-                last = [current]
+                #last = [current]
+                last = [r,right]
             
             
             right += 1
