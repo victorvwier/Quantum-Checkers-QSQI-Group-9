@@ -14,7 +14,7 @@ def get_row_col_from_mouse(pos):
 
 
 def Convert_to_Q(C_pos):
-    return (int(Cols / 2 * C_pos[0] + C_pos[1] // 2))
+    return int(Cols / 2 * C_pos[0] + C_pos[1] // 2)
 
 
 class game():
@@ -25,7 +25,7 @@ class game():
         self.q_counter = 0
         self.pos_moves = {}
         self.backend = qi_backend
-        Board.update_board(self.backend)
+        Board.update_board()
 
     def update(self):
         Board.draw_squares(win)
@@ -34,6 +34,9 @@ class game():
         if self.selected != 0:
             Board.draw_possible_moves(win, self.pos_moves)
         pygame.display.update()
+
+    def Convert_to_Q(self, C_pos):
+        return (int(Cols / 2 * C_pos[0] + C_pos[1] // 2))
 
     def check_for_valid_selection(self, row, col):
         if Board.board_color[row][col] == self.turn:
@@ -48,21 +51,48 @@ class game():
         self.pos_moves = Board.check_valid_moves(self.selected_piece)
         self.q_counter = 0
 
+    def perform_c_move(self, row, col):
+        clicked = (row, col)
+        failed_attack = False
+
+        if len(game.pos_moves[clicked]) == 0:
+            if Board.board_color[row][col] == 0:
+                game.perform_c_empty(row, col)
+            elif Board.board_color[row][col] == game.turn and Board.board[row][col] < 0.9:
+                game.perform_c_own_color(row, col)
+        else:
+            while not (failed_attack) and len(self.pos_moves[clicked]) != 0:
+                defender = self.pos_moves[clicked][0:2]
+                print(defender)
+                del self.pos_moves[clicked][0:2]
+                suc_a, suc_b = Board.Qcirc.collapse(game.Convert_to_Q(game.selected_piece), game.Convert_to_Q(defender))
+
+                if suc_a == 0:
+                    failed_attack = True
+                    if suc_b == 0:
+                        Board.board_color[defender[0]][defender[1]] = 0
+                    Board.board_color[game.selected_piece[0]][game.selected_piece[1]]
+                    Board.update_board()
+                elif suc_b == 0:
+                    game.perform_c_empty(defender[0], defender[1])
+                elif suc_b == 1:
+                    game.perform_c_empty(clicked[0], clicked[1])
+                game.update()
+                Board.move_sound()
+
     def perform_c_empty(self, row, col):
         new_position = (row, col)
         Board.Qcirc.c_empty(Convert_to_Q(game.selected_piece), Convert_to_Q(new_position))
         self.selected = 0
         self.turn = - self.turn
-        Board.update_board(self.backend)
-        Board.move_sound()
+        Board.update_board()
 
     def perform_c_own_color(self, row, col):
         new_position = (row, col)
         Board.Qcirc.c_own_color(Convert_to_Q(game.selected_piece), Convert_to_Q(new_position))
         self.selected = 0
         self.turn = - self.turn
-        Board.update_board(self.backend)
-        Board.move_sound()
+        Board.update_board()
 
     def perform_q_move(self, row, col):
         if self.q_counter == 0:
@@ -78,20 +108,19 @@ class game():
             self.q_counter = 0
             self.turn = -self.turn
 
-        Board.update_board(self.backend)
+        Board.update_board()
         Board.move_sound()
 
     def move_allowed(self, row, col):
         return ((row, col) in self.pos_moves)
 
-    # qi_backend = fix_connection()
 
+qi_backend = fix_connection()
 
-qi_backend = None
 win = pygame.display.set_mode((Width, Height), pygame.DOUBLEBUF, 32)
 pygame.display.set_caption('Checkers')
 FPS = 60
-Board = Board()
+Board = Board(qi_backend)
 game = game(qi_backend)
 
 
@@ -101,13 +130,10 @@ def main():
 
     while run:
         clock.tick(FPS)
-
         for event in pygame.event.get():
-
             if event.type == pygame.QUIT:
                 run = False
-                Board.Qcirc.draw_circuit()
-
+                # Board.Qcirc.draw_circuit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 row, col = get_row_col_from_mouse(pos)
@@ -127,15 +153,11 @@ def main():
                     game.change_selected_piece(row, col)
 
                 elif game.selected == 1 and Board.qmode == False and game.move_allowed(row, col):
-                    if Board.board_color[row][col] == 0:
-                        game.perform_c_empty(row, col)
-                    elif Board.board_color[row][col] == game.turn:
-                        game.perform_c_own_color(row, col)
+                    game.perform_c_move(row, col)
 
                 elif game.selected == 1 and Board.board_color[row][col] == 0 and \
                         Board.qmode == True and game.move_allowed(row, col):
                     game.perform_q_move(row, col)
-
         game.update()
 
     pygame.quit()

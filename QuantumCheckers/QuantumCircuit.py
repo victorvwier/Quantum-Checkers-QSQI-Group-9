@@ -11,14 +11,18 @@ from qiskit import execute
 from qiskit.visualization import plot_histogram
 from qiskit.quantum_info.states import Statevector, partial_trace
 from qiskit import execute
+from qiskit import Aer
+
+
 
 class Quantumcircuit:
     
-    def __init__(self,Rows,Cols,Piece_Rows):
+    def __init__(self,Rows,Cols,Piece_Rows,backend):
         self.numb = Rows*Cols // 2
         self.circuit = QuantumCircuit(self.numb, self.numb)
         self.color = np.zeros(self.numb)
         self.Qboard = np.zeros(self.numb)
+        self.backend = backend
         
         for i in range (Cols*Piece_Rows // 2):
             self.circuit.x(i)
@@ -28,24 +32,24 @@ class Quantumcircuit:
             
         self.construct_binarray()
             
-        #self._build_SqSwapGate()
+        self._build_SqSwapGate()
         
-    # def _build_SqSwapGate(self):
-    #     self.SqSwap = QuantumCircuit(2,name='sqswap')
-    #     self.SqSwap.cnot(0,1)
-    #     self.SqSwap.h(0)
-    #     self.SqSwap.t(0)
-    #     self.SqSwap.tdg(1)
-    #     self.SqSwap.h(0)
-    #     self.SqSwap.h(1)
-    #     self.SqSwap.cnot(0,1)
-    #     self.SqSwap.h(0)
-    #     self.SqSwap.h(1)
-    #     self.SqSwap.tdg(0)
-    #     self.SqSwap.h(0)
-    #     self.SqSwap.cnot(0,1)
-    #     self.SqSwap.s(1)
-    #     self.SqSwap.sdg(0)
+    def _build_SqSwapGate(self):
+        self.SqSwap = QuantumCircuit(2,name='sqswap')
+        self.SqSwap.cnot(0,1)
+        self.SqSwap.h(0)
+        self.SqSwap.t(0)
+        self.SqSwap.tdg(1)
+        self.SqSwap.h(0)
+        self.SqSwap.h(1)
+        self.SqSwap.cnot(0,1)
+        self.SqSwap.h(0)
+        self.SqSwap.h(1)
+        self.SqSwap.tdg(0)
+        self.SqSwap.h(0)
+        self.SqSwap.cnot(0,1)
+        self.SqSwap.s(1)
+        self.SqSwap.sdg(0)
     
     def construct_binarray(self):
         
@@ -71,11 +75,17 @@ class Quantumcircuit:
     #     self.color[new_pos1]=self.color[new_pos2]
         
     def q_empty(self,old_pos,new_pos1,new_pos2):
+        
         self.circuit.swap(old_pos,new_pos1)
         self.color[old_pos],self.color[new_pos1]=0,self.color[old_pos]
-        self.circuit.h(new_pos2)
-        self.circuit.cnot(new_pos2,new_pos1)
+        self.circuit.append(self.SqSwap,(new_pos2,new_pos1))
         self.color[new_pos2]=self.color[new_pos1]
+        
+        # self.circuit.swap(old_pos,new_pos1)
+        # self.color[old_pos],self.color[new_pos1]=0,self.color[old_pos]
+        # self.circuit.h(new_pos2)
+        # self.circuit.cnot(new_pos2,new_pos1)
+        # self.color[new_pos2]=self.color[new_pos1]
         
         
     
@@ -103,29 +113,7 @@ class Quantumcircuit:
         if histogram == True:
             plot_histogram(histogram)
         
-    def get_probability_comp(self,backend, shots=256):
-        empty_list = []
-        qi_job = execute(self.circuit, backend=backend, shots=shots)
-        qi_result = qi_job.result()
-        string_repr = qi_result.get_memory(self.circuit)
-        #print(split_results,string_repr)
-        for string in (string_repr):
-            empty_list+= string
-        split_results = np.array(empty_list).astype(np.int)
-        probabilities = np.mean(np.reshape(split_results,(shots,self.numb)),axis=1)
-        return probabilities
-        
-        
-    def get_probability_exact(self,i):
-        
-        all_tiles = list(np.arange(0,self.numb)) 
-        all_tiles.remove(i)
-        init_state = self.numb * '0'
-        zero_state = Statevector.from_label(init_state)
-        self.final_state = zero_state.evolve(self.circuit)
-        denmat = partial_trace(self.final_state,all_tiles)
-        exp_value = denmat.probabilities()
-        return exp_value[1]
+
         
     def get_probability_exact2(self):
         init_state = self.numb * '0'
@@ -134,7 +122,46 @@ class Quantumcircuit:
         full_prob = self.final_state.probabilities()
         probabilities = np.matmul(np.transpose(self.binary_array),full_prob)
         return np.flipud(probabilities)
+    
+    def collapse(self,attacker,defender):
         
+        qi_job = execute(self.circuit, backend=self.backend, shots=1)
+        qi_result = qi_job.result()
+        string_repr = qi_result.get_memory(self.circuit)
+        a,b = int(string_repr[0][-attacker-1]),int(string_repr[0][-defender-1])
+        
+        
+        
+        self.circuit.initialize([not(a),a],[attacker])
+        self.circuit.initialize([not(b),b],[defender])
+        return(a,b)
+        
+        
+    
+    
+    # def get_probability_comp(self,backend, shots=256):
+    #     empty_list = []
+    #     qi_job = execute(self.circuit, backend=backend, shots=shots)
+    #     qi_result = qi_job.result()
+    #     string_repr = qi_result.get_memory(self.circuit)
+    #     #print(split_results,string_repr)
+    #     for string in (string_repr):
+    #         empty_list+= string
+    #     split_results = np.array(empty_list).astype(np.int)
+    #     probabilities = np.mean(np.reshape(split_results,(shots,self.numb)),axis=1)
+    #     return probabilities
+        
+        
+    # def get_probability_exact(self,i):
+        
+    #     all_tiles = list(np.arange(0,self.numb)) 
+    #     all_tiles.remove(i)
+    #     init_state = self.numb * '0'
+    #     zero_state = Statevector.from_label(init_state)
+    #     self.final_state = zero_state.evolve(self.circuit)
+    #     denmat = partial_trace(self.final_state,all_tiles)
+    #     exp_value = denmat.probabilities()
+    #     return exp_value[1]
         
         
         

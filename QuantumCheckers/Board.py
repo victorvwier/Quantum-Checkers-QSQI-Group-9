@@ -11,24 +11,21 @@ import math
 
 
 class Board:
-
-    def __init__(self):
-        self.n_tiles = Rows * Cols // 2
-        self.Qcirc = Quantumcircuit(Rows, Cols, Piece_Rows)
-        self.board = np.zeros((Rows, Cols))
-        self.board_color = np.zeros((Rows, Cols))
-        self.white_left = self.black_left = Cols * Piece_Rows // 2
+    def __init__(self,backend):
+        self.n_tiles = Rows*Cols//2
+        self.Qcirc = Quantumcircuit(Rows,Cols,Piece_Rows,backend)
+        self.board = np.zeros((Rows,Cols))
+        self.board_color = np.zeros((Rows,Cols))
+        self.white_left = self.black_left = Cols*Piece_Rows//2
         self.qmode = False
         self.chmode = True
 
         pygame.init()
         pygame.mixer.init()
         pygame.freetype.init()
-
-    def update_board(self, backend):
-
-        # self.Qcirc.Qboard = self.Qcirc.get_probability_comp(backend=backend)
-
+        
+    def update_board(self):
+        #self.Qcirc.Qboard = self.Qcirc.get_probability_comp(backend=backend)
         # for i in range (self.n_tiles):
         #     self.Qcirc.Qboard[i] = self.Qcirc.get_probability_exact(i)
 
@@ -125,8 +122,7 @@ class Board:
 
         self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
 
-    def check_valid_moves(self, selected_piece):
-
+    def check_valid_moves(self,selected_piece):
         moves = {}
         left = selected_piece[1] - 1
         right = selected_piece[1] + 1
@@ -179,8 +175,8 @@ class Board:
                 break
 
             else:
-                last = [current]
-
+                #last = [current]
+                last = [r,left]
             left -= 1
         return moves
 
@@ -218,8 +214,8 @@ class Board:
                     break
 
             else:
-                last = [current]
-
+                #last = [current]
+                last = [r,right]
             right += 1
 
         return moves
