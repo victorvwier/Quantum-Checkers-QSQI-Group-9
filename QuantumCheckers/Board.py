@@ -21,7 +21,7 @@ class Board:
         self.chmode = True
 
         pygame.init()
-        pygame.mixer.init()
+        # pygame.mixer.init()
         pygame.freetype.init()
         
     def update_board(self):
