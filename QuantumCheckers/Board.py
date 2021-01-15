@@ -64,8 +64,9 @@ class Board:
         self.render_text(win, 0.5 * Square_Size, (Rows - 5/12) * Square_Size, 'Q_mode', Transparent_White)
 
     def move_sound(self):
-        move_sound = pygame.mixer.Sound('sound/move.wav')
-        move_sound.play()
+#         move_sound = pygame.mixer.Sound('sound/move.wav')
+#         move_sound.play()
+        pass
 
     def render_text(self, surface, x, y, text, color):
         font = pygame.freetype.SysFont('Consolas', Square_Size * 0.1)
@@ -121,7 +122,7 @@ class Board:
         pygame.gfxdraw.filled_circle(surface, cx, cy, int(0.9 * r), color)
 
         self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
-
+        
     def check_valid_moves(self,selected_piece):
         moves = {}
         left = selected_piece[1] - 1

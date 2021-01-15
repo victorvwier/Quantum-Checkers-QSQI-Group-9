@@ -118,6 +118,7 @@ class game():
 qi_backend = fix_connection()
 
 win = pygame.display.set_mode((Width, Height), pygame.DOUBLEBUF, 32)
+
 pygame.display.set_caption('Checkers')
 FPS = 60
 Board = Board(qi_backend)
