@@ -97,16 +97,22 @@ class game():
     def perform_q_move(self, row, col):
         if self.q_counter == 0:
             self.new_pos1 = (row, col)
-            self.q_counter = 1
-        elif self.q_counter == 1:
-            self.new_pos2 = (row, col)
-            # Board.Qcirc.sqrtswap(Convert_to_Q(self.selected_piece),\
-
+            #self.q_counter = 1
             Board.Qcirc.q_empty(Convert_to_Q(self.selected_piece), \
-                                Convert_to_Q(self.new_pos1), Convert_to_Q(self.new_pos2))
+                                Convert_to_Q(self.new_pos1))
             self.selected = 0
             self.q_counter = 0
             self.turn = -self.turn
+        elif self.q_counter == 1:
+            pass
+            # self.new_pos2 = (row, col)
+            # # Board.Qcirc.sqrtswap(Convert_to_Q(self.selected_piece),\
+
+            # Board.Qcirc.q_empty(Convert_to_Q(self.selected_piece), \
+            #                     Convert_to_Q(self.new_pos1), Convert_to_Q(self.new_pos2))
+            # self.selected = 0
+            # self.q_counter = 0
+            # self.turn = -self.turn
 
         Board.update_board()
         Board.move_sound()

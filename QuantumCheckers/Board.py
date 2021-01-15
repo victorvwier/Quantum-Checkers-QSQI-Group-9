@@ -37,6 +37,8 @@ class Board:
                 self.board[row][col] = self.Qcirc.Qboard[j]
                 self.board_color[row][col] = self.Qcirc.color[j]
                 j += 1
+                if self.board[row][col] < 0.02:
+                    self.board_color[row][col] = 0
 
     def draw_squares(self, win):
         win.fill(Board_Brown)

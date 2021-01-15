@@ -74,12 +74,12 @@ class Quantumcircuit:
     #     self.swap(old_pos,new_pos2)
     #     self.color[new_pos1]=self.color[new_pos2]
         
-    def q_empty(self,old_pos,new_pos1,new_pos2):
+    def q_empty(self,old_pos,new_pos):
         
-        self.circuit.swap(old_pos,new_pos1)
-        self.color[old_pos],self.color[new_pos1]=0,self.color[old_pos]
-        self.circuit.append(self.SqSwap,(new_pos2,new_pos1))
-        self.color[new_pos2]=self.color[new_pos1]
+        #self.circuit.swap(old_pos,new_pos1)
+        #self.color[old_pos],self.color[new_pos1]=0,self.color[old_pos]
+        self.circuit.append(self.SqSwap,(old_pos,new_pos))
+        self.color[new_pos]=self.color[old_pos]
         
         # self.circuit.swap(old_pos,new_pos1)
         # self.color[old_pos],self.color[new_pos1]=0,self.color[old_pos]
