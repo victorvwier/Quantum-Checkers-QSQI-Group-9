@@ -90,28 +90,39 @@ class Quantumcircuit:
         
     
     def new_initialization(self,positions):
-        self.circuit = QuantumCircuit(self.numb)
+        circuit2 = QuantumCircuit(self.numb,self.numb)
         for i, pos in enumerate (positions):
-            if pos == 1:
-                self.circuit.x(i)
+            if int(pos) == 1:
+                circuit2.x(i)
+        self.circuit = circuit2.copy()
                 
     def draw_circuit(self):
         self.circuit.draw(output='mpl')
         
-    def perform_measurement(self,backend,shots,histogram=False):
-        qi_job = execute(self.circuit, backend=backend, shots=shots)
+    def full_collapse(self,attacker,defender,behind):
+        qi_job = execute(self.circuit, backend=self.backend, shots=1)
         qi_result = qi_job.result()
         
-        histogram = qi_result.get_counts(self.circuit)
-        print('\nState\tCounts')
-        [print('{0}\t\t{1}'.format(state, counts)) for state, counts in histogram.items()]
-        # Print the full state probabilities histogram
-        probabilities_histogram = qi_result.get_probabilities(self.circuit)
-        print('\nState\tProbabilities')
-        [print('{0}\t\t{1}'.format(state, val)) for state, val in probabilities_histogram.items()]
+        string_repr = qi_result.get_memory(self.circuit)
+        array_repr = np.flipud(np.array(list(string_repr[0])))
         
-        if histogram == True:
-            plot_histogram(histogram)
+        
+        a,b,c = int(array_repr[attacker]),int(array_repr[defender]),\
+                                              int(array_repr[behind])
+        print(a,b,c)
+        self.new_initialization(array_repr)
+        return(a,b,c)
+        
+        # histogram = qi_result.get_counts(self.circuit)
+        # print('\nState\tCounts')
+        # [print('{0}\t\t{1}'.format(state, counts)) for state, counts in histogram.items()]
+        # # Print the full state probabilities histogram
+        # probabilities_histogram = qi_result.get_probabilities(self.circuit)
+        # print('\nState\tProbabilities')
+        # [print('{0}\t\t{1}'.format(state, val)) for state, val in probabilities_histogram.items()]
+        
+        # if histogram == True:
+        #     plot_histogram(histogram)
         
 
         
@@ -128,7 +139,8 @@ class Quantumcircuit:
         qi_job = execute(self.circuit, backend=self.backend, shots=1)
         qi_result = qi_job.result()
         string_repr = qi_result.get_memory(self.circuit)
-        a,b = int(string_repr[0][-attacker-1]),int(string_repr[0][-defender-1])
+        a,b = int(string_repr[0][-defender-1]),int(string_repr[0][-attacker-1])
+        print(a,b)
         
         
         
@@ -136,6 +148,8 @@ class Quantumcircuit:
         self.circuit.initialize([not(b),b],[defender])
         return(a,b)
         
+    def remove_collapsed_piece(self,piece):
+        self.circuit.x(piece)
         
     
     
