@@ -78,8 +78,8 @@ class game():
                     behind = clicked
 
                 print(attacker, defender, behind)
-                suc_a, suc_b, suc_c = Board.Qcirc.full_collapse(game.convert_to_Q(attacker), \
-                                                                game.convert_to_Q(defender), game.convert_to_Q(behind))
+                suc_a, suc_b, suc_c = Board.quantum_circuit.full_collapse(game.convert_to_Q(attacker), \
+                                                                          game.convert_to_Q(defender), game.convert_to_Q(behind))
 
                 if suc_a == 0:
                     failed_attack = True
@@ -90,7 +90,7 @@ class game():
                     game.perform_c_empty(defender[0], defender[1])
                 elif suc_b == 1 and suc_c == 0:
                     game.perform_c_empty(behind[0], behind[1], other=attacker)
-                    Board.Qcirc.remove_collapsed_piece(game.convert_to_Q(defender))
+                    Board.quantum_circuit.remove_collapsed_piece(game.convert_to_Q(defender))
                     Board.board_color[defender[0]][defender[1]] = 0
 
                 Board.update_board()
@@ -103,20 +103,20 @@ class game():
     def perform_c_empty(self, row, col, other=False):
         new_position = (row, col)
         if not other:
-            Board.Qcirc.c_empty(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
+            Board.quantum_circuit.c_empty(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
         else:
-            Board.Qcirc.c_empty(game.convert_to_Q(other), game.convert_to_Q(new_position))
+            Board.quantum_circuit.c_empty(game.convert_to_Q(other), game.convert_to_Q(new_position))
 
     def perform_c_own_color(self, row, col):
         new_position = (row, col)
-        Board.Qcirc.c_own_color(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
+        Board.quantum_circuit.c_own_color(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
 
     def perform_q_move(self, row, col):
         if self.q_counter == 0:
             self.new_pos1 = (row, col)
             # self.q_counter = 1
-            Board.Qcirc.q_empty(game.convert_to_Q(self.selected_piece), \
-                                game.convert_to_Q(self.new_pos1))
+            Board.quantum_circuit.q_empty(game.convert_to_Q(self.selected_piece), \
+                                          game.convert_to_Q(self.new_pos1))
             self.selected = 0
             self.q_counter = 0
             self.turn = -self.turn
@@ -157,29 +157,29 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-                Board.Qcirc.draw_circuit()
+                Board.quantum_circuit.draw_circuit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 row, col = get_row_col_from_mouse(pos)
                 if row == 0 and col == Cols - 1:
-                    Board.qmode = not Board.qmode
+                    Board.quantum_mode = not Board.quantum_mode
                     game.q_counter = 0
 
                 elif row == Rows - 1 and col == 0:
-                    Board.chmode = not Board.chmode
+                    Board.entangle_mode = not Board.entangle_mode
                     game.q_counter = 0
 
                 elif game.selected == 0:
                     game.check_for_valid_selection(row, col)
 
                 elif game.selected == 1 and Board.board_color[row][col] == game.turn \
-                        and Board.chmode:
+                        and not Board.entangle_mode:
                     game.change_selected_piece(row, col)
 
-                elif game.selected == 1 and not Board.qmode and game.move_allowed(row, col):
+                elif game.selected == 1 and not Board.quantum_mode and game.move_allowed(row, col):
                     game.perform_c_move(row, col)
 
-                elif game.selected == 1 and Board.qmode and game.move_allowed(row, col):
+                elif game.selected == 1 and Board.quantum_mode and game.move_allowed(row, col):
                     game.perform_q_move(row, col)
         game.update()
 
