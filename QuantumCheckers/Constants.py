@@ -1,11 +1,12 @@
 # game details
-Rows = 4
-Cols = 4
+Rows = 6
+Cols = 6
 Piece_Rows = 1
 Full_Collapse = True
 
 # gui settings
-Width, Height = 1000, 1000
+Width = 950
+Height = int((Rows + 0.5) / Rows * Width)
 Square_Size = Width // Cols
 
 # colors
@@ -23,4 +24,3 @@ Black = (0, 0, 0)
 Blue = (0, 0, 255)
 Board_Brown = (241, 241, 241)
 Board_White = (163, 180, 216)
-

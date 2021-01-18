@@ -44,26 +44,27 @@ class Board:
         win.fill(Board_Brown)
         for row in range(Rows):
             for col in range(row % 2, Rows, 2):
-                pygame.draw.rect(win, Board_White, (row * Square_Size, \
-                                                    col * Square_Size, Square_Size, Square_Size))
-        pygame.draw.rect(win, Grey, ((Rows - 1) * Square_Size, 0 \
-                                         , Square_Size, Square_Size))
-        pygame.draw.rect(win, Grey, (0, (Cols - 1) * Square_Size \
-                                         , Square_Size, Square_Size))
+                pygame.draw.rect(win, Board_White, (row * Square_Size, col * Square_Size, Square_Size, Square_Size))
+        pygame.draw.rect(win, Grey, (0, Cols * Square_Size, Cols * Square_Size, Square_Size))
+
+        pygame.draw.rect(win, Grey, (0, Cols * Square_Size, Square_Size, Square_Size // 2))
+        pygame.draw.rect(win, Grey, ((Rows - 1) * Square_Size, Cols * Square_Size, Square_Size, Square_Size // 2))
+
+        self.render_text(win, (Rows // 2) * Square_Size, (Cols + 0.25) * Square_Size, 'quantum checkers', White, font_size=Square_Size*0.2)
 
     def draw_buttons(self, win):
         qmode_color = Green if self.quantum_mode else Transparent_White
-        self.render_text(win, (Rows - 0.5) * Square_Size, 0.5 * Square_Size, 'Quantum Mode', qmode_color)
+        self.render_text(win, (Rows - 0.5) * Square_Size, (Cols + 0.25) * Square_Size, 'quantum moves {}'.format("on" if self.quantum_mode else "off"), qmode_color)
 
         entangle_color = Green if self.entangle_mode else Transparent_White
-        self.render_text(win, 0.5 * Square_Size, (Rows - 0.5) * Square_Size, 'Entangle Mode', entangle_color)
+        self.render_text(win, 0.5 * Square_Size, (Cols + 0.25) * Square_Size, 'entangling {}'.format("on" if self.entangle_mode else "off"), entangle_color)
 
     def move_sound(self):
         move_sound = pygame.mixer.Sound('sound/move.wav')
         move_sound.play()
 
-    def render_text(self, surface, x, y, text, color):
-        font = pygame.freetype.SysFont('Consolas', Square_Size * 0.1)
+    def render_text(self, surface, x, y, text, color, font_size=Square_Size * 0.1):
+        font = pygame.freetype.SysFont('Consolas', font_size)
         textsurface = font.render(text, fgcolor=color)[0]
         dx = int(textsurface.get_size()[0] / 2)
         dy = int(textsurface.get_size()[1] / 2)

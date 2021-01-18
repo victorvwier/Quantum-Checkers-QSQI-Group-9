@@ -10,7 +10,7 @@ def get_row_col_from_mouse(pos):
     x, y = pos
     row = y // Square_Size
     col = x // Square_Size
-    return (row, col)
+    return row, col
 
 
 class game():
@@ -77,7 +77,7 @@ class game():
                         behind = (defend[0] + 1, defend[1] + 1)
                 else:
                     behind = clicked
-                
+
                 if Full_Collapse:
                     # Full collapse
                     suc_a, suc_b, suc_c = Board.quantum_circuit.full_collapse(game.convert_to_Q(attacker), \
@@ -174,13 +174,13 @@ def main():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 row, col = get_row_col_from_mouse(pos)
-                if row == 0 and col == Cols - 1:
-                    Board.quantum_mode = not Board.quantum_mode
-                    game.q_counter = 0
-
-                elif row == Rows - 1 and col == 0:
-                    Board.entangle_mode = not Board.entangle_mode
-                    game.q_counter = 0
+                if row == Rows:
+                    if col == Cols - 1:
+                        Board.quantum_mode = not Board.quantum_mode
+                        game.q_counter = 0
+                    elif col == 0:
+                        Board.entangle_mode = not Board.entangle_mode
+                        game.q_counter = 0
 
                 elif game.selected == 0:
                     game.check_for_valid_selection(row, col)
