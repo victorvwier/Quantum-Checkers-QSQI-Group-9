@@ -13,6 +13,7 @@ from qiskit.quantum_info.states import Statevector, partial_trace
 from qiskit import execute
 from qiskit import Aer
 
+backendAer = Aer.get_backend('statevector_simulator')
 
 
 class Quantumcircuit:
@@ -123,6 +124,22 @@ class Quantumcircuit:
         
         # if histogram == True:
         #     plot_histogram(histogram)
+        
+    def part_collapse(self,attacker,defender,behind):
+        
+        self.circuit.measure(attacker,attacker)
+        self.circuit.measure(defender,defender)
+        self.circuit.measure(behind,behind)
+        circuit2 = QuantumCircuit(self.numb,self.numb)
+        
+        result = execute(self.circuit,backendAer).result() 
+        out_state = result.get_statevector()
+        circuit2.initialize(out_state,np.arange(self.numb))
+        self.circuit = circuit2.copy()
+        
+        
+        
+        
         
 
         

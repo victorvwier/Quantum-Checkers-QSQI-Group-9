@@ -86,8 +86,9 @@ class game():
                 
                 # Full collapse
                 
-                suc_a, suc_b, suc_c = Board.Qcirc.full_collapse(game.convert_to_Q(attacker), \
+                suc_a, suc_b, suc_c = Board.Qcirc.full_collapse(game.convert_to_Q(attacker),\
                                                                 game.convert_to_Q(defender), game.convert_to_Q(behind))
+                Board.update_board()
 
                 if suc_a == 0:
                     failed_attack = True

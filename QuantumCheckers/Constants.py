@@ -1,7 +1,7 @@
 
 
-Rows=6
-Cols=6
+Rows=4
+Cols=4
 Piece_Rows = 1
 
 Width,Height = 1000, 1000
