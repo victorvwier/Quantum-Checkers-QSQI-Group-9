@@ -3,7 +3,7 @@ import pygame
 from Q_inspire_connection import fix_connection
 
 from Board import Board
-from Constants import Rows, Cols, Width, Height, Square_Size
+from Constants import Rows, Cols, Width, Height, Square_Size, Full_Collapse
 
 
 def get_row_col_from_mouse(pos):
@@ -11,6 +11,7 @@ def get_row_col_from_mouse(pos):
     row = y // Square_Size
     col = x // Square_Size
     return (row, col)
+
 
 class game():
 
@@ -76,19 +77,20 @@ class game():
                         behind = (defend[0] + 1, defend[1] + 1)
                 else:
                     behind = clicked
-
-
-                #part collapse
-                # Board.Qcirc.part_collapse(game.convert_to_Q(attacker), \
-                #                                                 game.convert_to_Q(defender), game.convert_to_Q(behind))
-                # Board.update_board()
-                # suc_a,suc_b,suc_c = round(Board.board[attacker]),round(Board.board[defender]),round(Board.board[behind])
                 
-                # Full collapse
-                
-                suc_a, suc_b, suc_c = Board.quantum_circuit.full_collapse(game.convert_to_Q(attacker), \
-                                                                          game.convert_to_Q(defender), game.convert_to_Q(behind))
-                Board.update_board()
+                if Full_Collapse:
+                    # Full collapse
+                    suc_a, suc_b, suc_c = Board.quantum_circuit.full_collapse(game.convert_to_Q(attacker), \
+                                                                              game.convert_to_Q(defender),
+                                                                              game.convert_to_Q(behind))
+                    Board.update_board()
+                else:
+                    # Partial collapse code
+                    Board.Qcirc.part_collapse(game.convert_to_Q(attacker), \
+                                              game.convert_to_Q(defender), game.convert_to_Q(behind))
+                    Board.update_board()
+                    suc_a, suc_b, suc_c = round(Board.board[attacker]), round(Board.board[defender]), round(
+                        Board.board[behind])
 
                 if suc_a == 0:
                     failed_attack = True
