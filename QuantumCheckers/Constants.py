@@ -1,8 +1,8 @@
-
+import pygame
 
 # game details
-Rows = 6
-Cols = 6
+Rows = 4
+Cols = 4
 Piece_Rows = 1
 Full_Collapse = True
 
@@ -26,3 +26,6 @@ Black = (0, 0, 0)
 Blue = (0, 0, 255)
 Board_Brown = (241, 241, 241)
 Board_White = (163, 180, 216)
+
+crown_file = 'crown.png'
+crown = pygame.transform.scale(pygame.image.load(crown_file),(123,75))

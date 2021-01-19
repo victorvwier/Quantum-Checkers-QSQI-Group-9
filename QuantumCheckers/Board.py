@@ -5,7 +5,7 @@ import pygame.mixer
 
 from Constants import Rows, Cols, Piece_Rows, Square_Size, Grey, \
     Board_Brown, Board_White, Red, Green, White, Black, Blue_Piece, Red_Piece, Transparent_Grey, Transparent_White, \
-    Slightly_Transparent_White
+    Slightly_Transparent_White,Gold,crown
 from QuantumCircuit import Quantumcircuit
 import numpy as np
 import math
@@ -20,6 +20,7 @@ class Board:
         self.white_left = self.black_left = Cols * Piece_Rows // 2
         self.quantum_mode = False
         self.entangle_mode = False
+        self.board_kings =  np.zeros((Rows, Cols))
 
         pygame.init()
         pygame.freetype.init()
@@ -39,6 +40,7 @@ class Board:
                 j += 1
                 if self.board[row][col] < 0.02:
                     self.board_color[row][col] = 0
+        self.check_kings()
 
     def draw_squares(self, win):
         win.fill(Board_Brown)
@@ -117,6 +119,23 @@ class Board:
         pygame.gfxdraw.filled_circle(surface, cx, cy, int(0.9 * r), color)
 
         self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
+        
+    def draw_kings(self,win):
+        min_prob = 0.3
+        for row in range(Rows):
+            for col in range(Cols):
+                if self.board_kings[row][col] == 1 and self.board[row][col] > min_prob:
+                    win.blit(crown,(col*Square_Size+Square_Size//2-62,row*Square_Size+Square_Size//2-125)) 
+                    
+                    
+        
+    def check_kings(self):
+        for tile_col in range(0,2,Cols):
+            if self.board_color[0][tile_col] == -1:
+                self.board_kings[0][tile_col] = 1
+        for tile_col in range(1,2,Cols):
+            if self.board_color[Rows-1][tile_col] == 1:
+                self.board_kings[Rows-1][tile_col] = 1
 
     def check_valid_moves(self, selected_piece):
         moves = {}
@@ -126,15 +145,16 @@ class Board:
         color = self.board_color[selected_piece[0]][selected_piece[1]]
         # self.board_for_val_moves(selected_piece,color)
 
-        if color == -1:
+        if color == -1 or self.board_kings[selected_piece]:
             moves.update(self._traverse_left(row - 1, max(row - 3, -1), -1, color, left))
             moves.update(self._traverse_right(row - 1, max(row - 3, -1), -1, color, right))
 
-        if color == 1:
+        if color == 1 or self.board_kings[selected_piece]:
             moves.update(self._traverse_left(row + 1, min(row + 3, Rows), 1, color, left))
             moves.update(self._traverse_right(row + 1, min(row + 3, Rows), 1, color, right))
 
         return moves
+    
 
     def _traverse_left(self, start, stop, step, color, left, skipped=[]):
         moves = {}

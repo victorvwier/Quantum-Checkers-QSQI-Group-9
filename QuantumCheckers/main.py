@@ -27,6 +27,7 @@ class game():
         Board.draw_squares(win)
         Board.draw_pieces(win)
         Board.draw_buttons(win)
+        Board.draw_kings(win)
         if self.selected != 0:
             Board.draw_possible_moves(win, self.pos_moves)
         pygame.display.update()
@@ -116,6 +117,8 @@ class game():
 
     def perform_c_empty(self, row, col, other=False):
         new_position = (row, col)
+        Board.board_kings[new_position]= Board.board_kings[game.selected_piece]
+        Board.board_kings[game.selected_piece] = 0
         if not other:
             Board.quantum_circuit.c_empty(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
         else:
@@ -124,26 +127,17 @@ class game():
     def perform_c_own_color(self, row, col):
         new_position = (row, col)
         Board.quantum_circuit.c_own_color(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
+        Board.board_kings[new_position]= Board.board_kings[game.selected_piece]
 
     def perform_q_move(self, row, col):
-        if self.q_counter == 0:
-            self.new_pos1 = (row, col)
-            # self.q_counter = 1
-            Board.quantum_circuit.q_empty(game.convert_to_Q(self.selected_piece), \
-                                          game.convert_to_Q(self.new_pos1))
-            self.selected = 0
-            self.q_counter = 0
-            self.turn = -self.turn
-        elif self.q_counter == 1:
-            pass
-            # self.new_pos2 = (row, col)
-            # # Board.Qcirc.sqrtswap(Convert_to_Q(self.selected_piece),\
+        self.new_pos = (row, col)
+        Board.quantum_circuit.q_empty(game.convert_to_Q(self.selected_piece), \
+                                      game.convert_to_Q(self.new_pos))
+        Board.board_kings[self.new_pos]= Board.board_kings[game.selected_piece]    
+        self.selected = 0
+        self.q_counter = 0
+        self.turn = -self.turn
 
-            # Board.Qcirc.q_empty(Convert_to_Q(self.selected_piece), \
-            #                     Convert_to_Q(self.new_pos1), Convert_to_Q(self.new_pos2))
-            # self.selected = 0
-            # self.q_counter = 0
-            # self.turn = -self.turn
 
         Board.update_board()
         Board.move_sound()
