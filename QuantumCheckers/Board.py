@@ -40,6 +40,7 @@ class Board:
                 j += 1
                 if self.board[row][col] < 0.02:
                     self.board_color[row][col] = 0
+                    self.board_kings[row][col] = 0
         self.check_kings()
 
     def draw_squares(self, win):
