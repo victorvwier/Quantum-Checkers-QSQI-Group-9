@@ -88,7 +88,7 @@ class game():
                     Board.update_board()
                 else:
                     # Partial collapse code
-                    Board.Qcirc.part_collapse(game.convert_to_Q(attacker), \
+                    Board.quantum_circuit.part_collapse(game.convert_to_Q(attacker), \
                                               game.convert_to_Q(defender), game.convert_to_Q(behind))
                     Board.update_board()
                     suc_a, suc_b, suc_c = round(Board.board[attacker]), round(Board.board[defender]), round(

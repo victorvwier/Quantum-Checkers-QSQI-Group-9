@@ -126,15 +126,15 @@ class Board:
         for row in range(Rows):
             for col in range(Cols):
                 if self.board_kings[row][col] == 1 and self.board[row][col] > min_prob:
-                    win.blit(crown,(col*Square_Size+Square_Size//2-62,row*Square_Size+Square_Size//2-125)) 
+                    win.blit(crown,(col*Square_Size+Square_Size//2-248//Rows,row*Square_Size+Square_Size//2-500//Rows)) 
                     
                     
         
     def check_kings(self):
-        for tile_col in range(0,2,Cols):
+        for tile_col in range(0,Cols,2):
             if self.board_color[0][tile_col] == -1:
                 self.board_kings[0][tile_col] = 1
-        for tile_col in range(1,2,Cols):
+        for tile_col in range(1,Cols,2):
             if self.board_color[Rows-1][tile_col] == 1:
                 self.board_kings[Rows-1][tile_col] = 1
 
