@@ -77,6 +77,7 @@ class game():
                         behind = (defend[0] + 1, defend[1] + 1)
                 else:
                     behind = clicked
+                    
 
                 if Full_Collapse:
                     # Full collapse
@@ -99,10 +100,12 @@ class game():
                     Board.board_color[attacker[0]][attacker[1]]
                 elif suc_b == 0:
                     game.perform_c_empty(defender[0], defender[1])
+                    failed_attack = True
                 elif suc_b == 1 and suc_c == 0:
                     game.perform_c_empty(behind[0], behind[1], other=attacker)
                     Board.quantum_circuit.remove_collapsed_piece(game.convert_to_Q(defender))
                     Board.board_color[defender[0]][defender[1]] = 0
+                    game.selected_piece = behind
 
                 Board.update_board()
 
