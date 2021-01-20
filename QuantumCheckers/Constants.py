@@ -3,7 +3,7 @@ import pygame
 # game details
 Rows = 6
 Cols = 6
-Piece_Rows = 2
+Piece_Rows = 1
 Full_Collapse = True
 
 # gui settings

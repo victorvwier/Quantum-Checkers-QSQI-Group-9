@@ -38,7 +38,7 @@ class game():
     def check_for_valid_selection(self, row, col):
         if Board.board_color[row][col] == self.turn:
             self.selected_piece = (row, col)
-            self.selected = 1
+            self.selected = 1 
             self.pos_moves = Board.check_valid_moves(self.selected_piece)
         else:
             self.selected_piece = None
@@ -88,7 +88,7 @@ class game():
                     Board.update_board()
                 else:
                     # Partial collapse code
-                    Board.quantum_circuit.part_collapse(game.convert_to_Q(attacker), \
+                    Board.Qcirc.part_collapse(game.convert_to_Q(attacker), \
                                               game.convert_to_Q(defender), game.convert_to_Q(behind))
                     Board.update_board()
                     suc_a, suc_b, suc_c = round(Board.board[attacker]), round(Board.board[defender]), round(
@@ -126,8 +126,11 @@ class game():
 
     def perform_c_own_color(self, row, col):
         new_position = (row, col)
-        Board.quantum_circuit.c_own_color(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
-        Board.board_kings[new_position]= Board.board_kings[game.selected_piece]
+        if Board.board[game.selected_piece]>0.98:
+            Board.quantum_circuit.c_self_unentangled(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
+        else:
+            Board.quantum_circuit.c_self_entangled(game.convert_to_Q(game.selected_piece),game.convert_to_Q(new_position))
+        
 
     def perform_q_move(self, row, col):
         self.new_pos = (row, col)
