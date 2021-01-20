@@ -21,6 +21,7 @@ class Board:
         self.quantum_mode = False
         self.entangle_mode = False
         self.board_kings =  np.zeros((Rows, Cols))
+        self.ent_counter = np.zeros((Rows,Cols))
 
         pygame.init()
         pygame.freetype.init()
@@ -37,12 +38,13 @@ class Board:
             for col in range(row % 2, Rows, 2):
                 self.board[row][col] = self.quantum_circuit.quantum_board[j]
                 self.board_color[row][col] = self.quantum_circuit.color[j]
+                self.ent_counter[row][col] = self.quantum_circuit.ent_counter[j]
                 j += 1
                 if self.board[row][col] < 0.02:
                     self.board_color[row][col] = 0
                     self.board_kings[row][col] = 0
         self.check_kings()
-        print(self.quantum_circuit.ent_tracker)
+        print(self.quantum_circuit.ent_counter)
 
     def draw_squares(self, win):
         win.fill(Board_Brown)
@@ -122,6 +124,13 @@ class Board:
 
         self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
         
+    def draw_double_ent(self,win):
+        for row in range(Rows):
+            for col in range(Cols):
+                if self.ent_counter[row][col] == 2:
+                    pygame.draw.circle(win,Red,(col*Square_Size+Square_Size//2,row*Square_Size+Square_Size//2-23),8) 
+        
+        
     def draw_kings(self,win):
         min_prob = 0.3
         for row in range(Rows):
@@ -138,6 +147,8 @@ class Board:
         for tile_col in range(1,Cols,2):
             if self.board_color[Rows-1][tile_col] == 1:
                 self.board_kings[Rows-1][tile_col] = 1
+                
+                
 
     def check_valid_moves(self, selected_piece):
         moves = {}
@@ -175,7 +186,8 @@ class Board:
                     moves[(r, left)] = last
                     break
                 elif currentc == color and len(last) == 0 and currentp < 0.98 \
-                        and len(skipped) == 0 and self.board_kings[r][left] == self.board_kings[sel]:
+                        and len(skipped) == 0 and self.board_kings[r][left] == self.board_kings[sel]\
+                        and self.ent_counter[sel]<2:
 
                     moves[(r, left)] = last
                     break
@@ -214,7 +226,8 @@ class Board:
                     moves[(r, right)] = last
                     break
                 elif currentc == color and len(last) == 0 and currentp < 0.98 \
-                        and len(skipped) == 0 and self.board_kings[r][right] == self.board_kings[sel]:
+                        and len(skipped) == 0 and self.board_kings[r][right] == self.board_kings[sel]\
+                            and self.ent_counter[sel]<2:
 
                     moves[(r, right)] = last
                     break

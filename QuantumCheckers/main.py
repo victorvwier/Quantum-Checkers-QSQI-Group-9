@@ -28,6 +28,7 @@ class game():
         Board.draw_pieces(win)
         Board.draw_buttons(win)
         Board.draw_kings(win)
+        Board.draw_double_ent(win)
         if self.selected != 0:
             Board.draw_possible_moves(win, self.pos_moves)
         pygame.display.update()
@@ -52,12 +53,13 @@ class game():
         clicked = (row, col)
         failed_attack = False
         behind = None
+        failed_move = False
 
         if len(game.pos_moves[clicked]) == 0:
             if Board.board_color[row][col] == 0:
                 game.perform_c_empty(row, col)
             elif Board.board_color[row][col] == game.turn and Board.board[row][col] < 0.9:
-                game.perform_c_own_color(row, col)
+                game.perform_c_own_color(row, col,failed_move)
             Board.update_board()
         else:
             while not failed_attack and len(self.pos_moves[clicked]) != 0:
@@ -110,10 +112,11 @@ class game():
 
                 Board.update_board()
 
-        self.selected = 0
-        self.turn = -self.turn
-        game.update()
-        Board.move_sound()
+        if failed_move == False:
+            self.selected = 0
+            self.turn = -self.turn
+            game.update()
+            Board.move_sound()
 
     def perform_c_empty(self, row, col, other=False):
         new_position = (row, col)
@@ -124,12 +127,14 @@ class game():
         else:
             Board.quantum_circuit.c_empty(game.convert_to_Q(other), game.convert_to_Q(new_position))
 
-    def perform_c_own_color(self, row, col):
+    def perform_c_own_color(self, row, col,failed_move):
         new_position = (row, col)
         if Board.board[game.selected_piece]>0.98:
             Board.quantum_circuit.c_self_unentangled(game.convert_to_Q(game.selected_piece), game.convert_to_Q(new_position))
         else:
-            Board.quantum_circuit.c_self_entangled(game.convert_to_Q(game.selected_piece),game.convert_to_Q(new_position))
+            failed_move =Board.quantum_circuit.c_self_entangled\
+                (game.convert_to_Q(game.selected_piece),game.convert_to_Q(new_position),failed_move)
+        return failed_move
         
 
     def perform_q_move(self, row, col):
@@ -147,7 +152,6 @@ class game():
 
     def move_allowed(self, row, col):
         return (row, col) in self.pos_moves
-
 
 qi_backend = fix_connection()
 
@@ -197,6 +201,5 @@ def main():
         game.update()
 
     pygame.quit()
-
 
 main()
