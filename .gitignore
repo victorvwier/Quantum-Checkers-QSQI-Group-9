@@ -1,2 +1,8 @@
 __pycache__/
 .idea
+*.pyc
+checkers/__pycache__/__init__.cpython-37.pyc
+checkers/__pycache__/board.cpython-37.pyc
+checkers/__pycache__/constants.cpython-37.pyc
+checkers/__pycache__/game.cpython-37.pyc
+checkers/__pycache__/piece.cpython-37.pyc
