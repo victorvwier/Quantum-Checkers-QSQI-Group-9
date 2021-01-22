@@ -3,7 +3,6 @@ Width = 800
 Bar = 100
 Height = Width + Bar
 
-
 full_collapse_config = {
     "rows": 6,
     "cols": 6,

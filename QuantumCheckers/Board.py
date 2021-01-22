@@ -24,7 +24,8 @@ class Board:
         self.quantum_mode = False
         self.entangle_mode = False
         self.square_size = square_size
-        self.board_kings =  np.zeros((rows, cols))
+        self.board_kings = np.zeros((rows, cols))
+        self.ent_counter = np.zeros((rows, cols))
 
         pygame.init()
         pygame.freetype.init()
@@ -41,22 +42,26 @@ class Board:
             for col in range(row % 2, self.rows, 2):
                 self.board[row][col] = self.quantum_circuit.quantum_board[j]
                 self.board_color[row][col] = self.quantum_circuit.color[j]
+                self.ent_counter[row][col] = self.quantum_circuit.ent_counter[j]
                 j += 1
                 if self.board[row][col] < 0.02:
                     self.board_color[row][col] = 0
                     self.board_kings[row][col] = 0
         self.check_kings()
+        print(self.quantum_circuit.ent_counter)
 
     def draw_squares(self, win):
         win.fill(Grey)
         for row in range(self.rows):
             for col in range(row % 2, self.rows, 2):
-                pygame.draw.rect(win, Board_White, (row * self.square_size, col * self.square_size, self.square_size, self.square_size))
+                pygame.draw.rect(win, Board_White,
+                                 (row * self.square_size, col * self.square_size, self.square_size, self.square_size))
 
         bg = pygame.image.load("./img/bar.png")
         win.blit(bg, (0, Width, Width, Bar))
 
-        self.render_text(win, (self.rows // 2) * self.square_size, self.cols * self.square_size + Bar // 2, 'quantum checkers', White,
+        self.render_text(win, (self.rows // 2) * self.square_size, self.cols * self.square_size + Bar // 2,
+                         'quantum checkers', White,
                          font_size=Bar * 0.5, font_path='fonts/title.ttf')
 
     def draw_buttons(self, win):
@@ -133,14 +138,21 @@ class Board:
             # pygame.draw.circle(surface, Green, (cx, cy), int(r), width=2)
 
         self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
-        
+
+    def draw_double_ent(self, win):
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.ent_counter[row][col] == 2:
+                    pygame.draw.circle(win, Red, (col * self.square_size + self.square_size // 2,
+                                                  row * self.square_size + self.square_size // 2 + self.square_size / 6), 8)
+
     def check_kings(self):
-        for tile_col in range(0,self.cols,2):
+        for tile_col in range(0, self.cols, 2):
             if self.board_color[0][tile_col] == -1:
                 self.board_kings[0][tile_col] = 1
-        for tile_col in range(1,self.cols,2):
-            if self.board_color[self.rows-1][tile_col] == 1:
-                self.board_kings[self.rows-1][tile_col] = 1
+        for tile_col in range(1, self.cols, 2):
+            if self.board_color[self.rows - 1][tile_col] == 1:
+                self.board_kings[self.rows - 1][tile_col] = 1
 
     def check_valid_moves(self, selected_piece):
         moves = {}
@@ -148,20 +160,20 @@ class Board:
         right = selected_piece[1] + 1
         row = selected_piece[0]
         color = self.board_color[selected_piece[0]][selected_piece[1]]
+        sel = selected_piece
         # self.board_for_val_moves(selected_piece,color)
 
         if color == -1 or self.board_kings[selected_piece]:
-            moves.update(self._traverse_left(row - 1, max(row - 3, -1), -1, color, left))
-            moves.update(self._traverse_right(row - 1, max(row - 3, -1), -1, color, right))
+            moves.update(self._traverse_left(row - 1, max(row - 3, -1), -1, color, left, sel))
+            moves.update(self._traverse_right(row - 1, max(row - 3, -1), -1, color, right, sel))
 
         if color == 1 or self.board_kings[selected_piece]:
-            moves.update(self._traverse_left(row + 1, min(row + 3, self.rows), 1, color, left))
-            moves.update(self._traverse_right(row + 1, min(row + 3, self.rows), 1, color, right))
+            moves.update(self._traverse_left(row + 1, min(row + 3, self.rows), 1, color, left, sel))
+            moves.update(self._traverse_right(row + 1, min(row + 3, self.rows), 1, color, right, sel))
 
         return moves
-    
 
-    def _traverse_left(self, start, stop, step, color, left, skipped=[]):
+    def _traverse_left(self, start, stop, step, color, left, sel, skipped=[]):
         moves = {}
         last = []
         where_in = -1
@@ -177,7 +189,8 @@ class Board:
                     moves[(r, left)] = last
                     break
                 elif currentc == color and len(last) == 0 and currentp < 0.98 \
-                        and len(skipped) == 0:
+                        and len(skipped) == 0 and self.board_kings[r][left] == self.board_kings[sel] \
+                        and self.ent_counter[sel] < 2:
 
                     moves[(r, left)] = last
                     break
@@ -193,14 +206,15 @@ class Board:
                             row = min(r + 3, self.rows)
                         else:
                             row = max(r - 3, -1)
-                        moves.update(self._traverse_left(r + step, row, step, color, left - 1, skipped=list(last)))
-                        moves.update(self._traverse_right(r + step, row, step, color, left + 1, skipped=list(last)))
+                        moves.update(self._traverse_left(r + step, row, step, color, left - 1, sel, skipped=list(last)))
+                        moves.update(
+                            self._traverse_right(r + step, row, step, color, left + 1, sel, skipped=list(last)))
 
             left -= 1
 
         return moves
 
-    def _traverse_right(self, start, stop, step, color, right, skipped=[]):
+    def _traverse_right(self, start, stop, step, color, right, sel, skipped=[]):
         moves = {}
         last = []
         where_in = -1
@@ -216,7 +230,8 @@ class Board:
                     moves[(r, right)] = last
                     break
                 elif currentc == color and len(last) == 0 and currentp < 0.98 \
-                        and len(skipped) == 0:
+                        and len(skipped) == 0 and self.board_kings[r][right] == self.board_kings[sel] \
+                        and self.ent_counter[sel] < 2:
 
                     moves[(r, right)] = last
                     break
@@ -232,39 +247,11 @@ class Board:
                             row = min(r + 3, self.rows)
                         else:
                             row = max(r - 3, -1)
-                            moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped=list(last)))
                             moves.update(
-                                self._traverse_right(r + step, row, step, color, right + 1, skipped=list(last)))
+                                self._traverse_left(r + step, row, step, color, right - 1, sel, skipped=list(last)))
+                            moves.update(
+                                self._traverse_right(r + step, row, step, color, right + 1, sel, skipped=list(last)))
 
             right += 1
 
         return moves
-
-        # if self.board[r][right]<0.95:
-        #     if skipped and not last:
-        #         break
-        #     elif skipped:
-        #         moves[(r, right)] = last + skipped
-        #     elif current == 0:
-        #         moves[(r, right)] = last
-
-        #     if last:
-        #         if step == -1:
-        #             row = max(r - 3, 0)
-        #         else:
-        #             row = min(r + 3, self.rows)
-
-        #         moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped=last))
-        #         moves.update(self._traverse_right(r + step, row, step, color, right + 1, skipped=last))
-        #     break
-
-        # elif current == color:
-        #     if self.board[r][right] < 0.95:
-        #         moves[(r, right)] = last
-        #         break
-        #     else:
-        #         break
-
-        # else:
-        #     #last = [current]
-        #     last = [r,right]

@@ -12,7 +12,7 @@ from qiskit.visualization import plot_histogram
 from qiskit.quantum_info.states import Statevector, partial_trace
 from qiskit import execute
 from qiskit import Aer
-import scipy.sparse as sparse
+
 
 backendAer = Aer.get_backend('statevector_simulator')
 
@@ -25,17 +25,26 @@ class Quantumcircuit:
         self.color = np.zeros(self.numb)
         self.quantum_board = np.zeros(self.numb)
         self.backend = backend
+        self.ent_tracker = []
+        self.ent_counter = np.zeros((self.numb))
+        
+        for i in range(self.numb):
+            self.ent_tracker.append([])
 
         for i in range(Cols * Piece_Rows // 2):
             self.circuit.x(i)
             self.circuit.x(-i - 1)
             self.color[i] = 1
             self.color[-i - 1] = -1
+            self.ent_tracker[i].append(i)
+            self.ent_tracker[-1-i].append(Cols * Rows // 2-1-i)
+        print(self.ent_tracker)
 
         self.construct_binarray()
 
         self._build_SqSwapGate()
-
+    
+    
     def _build_SqSwapGate(self):
         self.SqSwap = QuantumCircuit(2, name='sqswap')
         self.SqSwap.cnot(0, 1)
@@ -52,6 +61,7 @@ class Quantumcircuit:
         self.SqSwap.cnot(0, 1)
         self.SqSwap.s(1)
         self.SqSwap.sdg(0)
+        self.revSqSwap = self.SqSwap.reverse_ops()
 
     def construct_binarray(self):
         tot_numb = int(2 ** self.numb)
@@ -64,21 +74,87 @@ class Quantumcircuit:
     def c_empty(self, old_pos, new_pos):
         self.circuit.swap(old_pos, new_pos)
         self.color[old_pos], self.color[new_pos] = 0, self.color[old_pos]
+        self.ent_tracker[old_pos],self.ent_tracker[new_pos]= [],self.ent_tracker[old_pos]
+        self.ent_counter[old_pos],self.ent_counter[new_pos]= 0,self.ent_counter[old_pos]
 
-    def c_own_color(self, old_pos, new_pos):
+    def c_self_unentangled(self, old_pos, new_pos):
         self.circuit.swap(old_pos, new_pos)
+        self.ent_tracker[old_pos],self.ent_tracker[new_pos]= self.ent_tracker[new_pos],self.ent_tracker[old_pos]
+        self.ent_counter[old_pos],self.ent_counter[new_pos]= self.ent_counter[new_pos],self.ent_counter[old_pos]
+        
+    def c_self_entangled(self,old_pos,new_pos,failed_move):
+        old = self.ent_tracker[old_pos]
+        new = self.ent_tracker[new_pos]
+        if len(old) == 1 and old == new:
+            self.circuit.append(self.revSqSwap,(old_pos,new_pos))
+            self.ent_tracker[old_pos] = []
+        elif len(old) == 1:
+            ent_with = []
+            partner = []
+            for i, lists in enumerate (self.ent_tracker):
+                if old[0] in lists:
+                    ent_with.append(i)
+                if new[0] in lists:
+                        partner.append(i)
+            ent_with.remove(old_pos)
+            partner.remove(new_pos)
+            
+            if len(ent_with) <=1:
+                self.circuit.x(ent_with[0])
+                self.circuit.cswap(ent_with[0],old_pos,new_pos)
+                self.circuit.x(ent_with[0])
+                    
+                self.ent_counter[new_pos] += 1
+                self.ent_counter[old_pos] += 1
+                self.ent_counter[ent_with[0]] += 1
+                self.ent_counter[partner[0]] += 1
+                
+            else:
+                print('impossible try sth else')
+                failed_move = True
+        else:
+            print('impossible try sth else')
+            failed_move = True
+        return failed_move
+            
+            
+            
 
-    # def sqrtswap(self, old_pos, new_pos1,new_pos2):
-    #     self.circuit.append(self.SqSwap,(old_pos,new_pos1))
-    #     self.swap(old_pos,new_pos2)
-    #     self.color[new_pos1]=self.color[new_pos2]
 
     def q_empty(self, old_pos, new_pos):
-
+        old = self.ent_tracker[old_pos]
+        new = self.ent_tracker[new_pos]
         # self.circuit.swap(old_pos,new_pos1)
         # self.color[old_pos],self.color[new_pos1]=0,self.color[old_pos]
         self.circuit.append(self.SqSwap, (old_pos, new_pos))
         self.color[new_pos] = self.color[old_pos]
+        
+        if self.ent_counter[old_pos] == 0 or self.ent_counter[new_pos] == 0:
+            deducer = self.ent_tracker[old_pos]
+            while type(deducer[0]) != int:
+                deducer = deducer[0]
+            for numbers in deducer:    
+                self.ent_tracker[new_pos].append(numbers)
+            
+            self.ent_counter[new_pos] = self.ent_counter[old_pos] + 1    
+            self.ent_counter[old_pos] += 1
+        else:
+            ent_with = []
+            partner = []
+            for i, lists in enumerate (self.ent_tracker):
+                if old[0] in lists:
+                    ent_with.append(i)
+                if new[0] in lists:
+                        partner.append(i)
+            ent_with.remove(old_pos)
+            partner.remove(new_pos)
+            
+            self.ent_counter[new_pos] += 1
+            self.ent_counter[old_pos] += 1
+            self.ent_counter[ent_with[0]] += 1
+            self.ent_counter[partner[0]] += 1
+        
+        
 
         # self.circuit.swap(old_pos,new_pos1)
         # self.color[old_pos],self.color[new_pos1]=0,self.color[old_pos]
@@ -87,11 +163,18 @@ class Quantumcircuit:
         # self.color[new_pos2]=self.color[new_pos1]
 
     def new_initialization(self, positions):
+        hulplist = []
+        for i in range(self.numb):
+            hulplist.append([])
+        
         circuit2 = QuantumCircuit(self.numb, self.numb)
         for i, pos in enumerate(positions):
             if int(pos) == 1:
+                hulplist[i].append(i)
                 circuit2.x(i)
         self.circuit = circuit2.copy()
+        self.ent_tracker = hulplist
+        self.ent_counter = np.zeros(self.numb)
 
     def draw_circuit(self):
         self.circuit.draw(output='mpl')

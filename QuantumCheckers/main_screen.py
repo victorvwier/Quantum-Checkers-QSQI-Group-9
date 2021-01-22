@@ -34,6 +34,7 @@ class Game:
         self.board.draw_squares(self.screen)
         self.board.draw_pieces(self.screen)
         self.board.draw_buttons(self.screen)
+        self.board.draw_double_ent(self.screen)
         if self.selected != 0:
             self.board.draw_possible_moves(self.screen, self.pos_moves)
         pygame.display.update()
@@ -57,12 +58,13 @@ class Game:
     def perform_c_move(self, row, col):
         clicked = (row, col)
         failed_attack = False
+        failed_move = False
 
         if len(self.pos_moves[clicked]) == 0:
             if self.board.board_color[row][col] == 0:
                 self.perform_c_empty(row, col)
             elif self.board.board_color[row][col] == self.turn and self.board.board[row][col] < 0.9:
-                self.perform_c_own_color(row, col)
+                self.perform_c_own_color(row, col, failed_move)
             self.board.update_board()
         else:
             while not failed_attack and len(self.pos_moves[clicked]) != 0:
@@ -111,10 +113,11 @@ class Game:
 
                 self.board.update_board()
 
-        self.selected = 0
-        self.turn = -self.turn
-        self.update()
-        self.board.move_sound()
+        if not failed_move:
+            self.selected = 0
+            self.turn = -self.turn
+            self.update()
+            self.board.move_sound()
 
     def perform_c_empty(self, row, col, other=False):
         new_position = (row, col)
@@ -125,10 +128,17 @@ class Game:
         else:
             self.board.quantum_circuit.c_empty(self.convert_to_Q(other), self.convert_to_Q(new_position))
 
-    def perform_c_own_color(self, row, col):
+    def perform_c_own_color(self, row, col, failed_move):
         new_position = (row, col)
-        self.board.quantum_circuit.c_own_color(self.convert_to_Q(self.selected_piece), self.convert_to_Q(new_position))
+        if self.board.board[self.selected_piece] > 0.98:
+            self.board.quantum_circuit.c_self_unentangled(self.convert_to_Q(self.selected_piece),
+                                                     self.convert_to_Q(new_position))
+        else:
+            failed_move = self.board.quantum_circuit.c_self_entangled \
+                (self.convert_to_Q(self.selected_piece), self.convert_to_Q(new_position), failed_move)
+
         self.board.board_kings[new_position] = self.board.board_kings[self.selected_piece]
+        return failed_move
 
     def perform_q_move(self, row, col):
         self.new_pos = (row, col)
