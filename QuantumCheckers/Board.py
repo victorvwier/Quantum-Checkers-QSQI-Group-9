@@ -3,23 +3,27 @@ import pygame.gfxdraw
 import pygame.freetype
 import pygame.mixer
 
-from Constants import Rows, Cols, Piece_Rows, Square_Size, Grey, \
+from Constants import Grey, Width, \
     Board_Brown, Board_White, Red, Green, White, Black, Blue_Piece, Red_Piece, Transparent_Grey, Transparent_White, \
-    Slightly_Transparent_White
+    Slightly_Transparent_White, Bar, Dark_Grey
 from QuantumCircuit import Quantumcircuit
 import numpy as np
 import math
 
 
 class Board:
-    def __init__(self, backend):
-        self.n_tiles = Rows * Cols // 2
-        self.quantum_circuit = Quantumcircuit(Rows, Cols, Piece_Rows, backend)
-        self.board = np.zeros((Rows, Cols))
-        self.board_color = np.zeros((Rows, Cols))
-        self.white_left = self.black_left = Cols * Piece_Rows // 2
+    def __init__(self, backend, rows, cols, piece_rows, square_size):
+        self.rows = rows
+        self.cols = cols
+        self.piece_rows = piece_rows
+        self.n_tiles = rows * cols // 2
+        self.quantum_circuit = Quantumcircuit(rows, cols, piece_rows, backend)
+        self.board = np.zeros((rows, cols))
+        self.board_color = np.zeros((rows, cols))
+        self.white_left = self.black_left = cols * piece_rows // 2
         self.quantum_mode = False
         self.entangle_mode = False
+        self.square_size = square_size
 
         pygame.init()
         pygame.freetype.init()
@@ -32,8 +36,8 @@ class Board:
         self.quantum_circuit.quantum_board = self.quantum_circuit.get_probability_exact2()
 
         j = 0
-        for row in range(Rows):
-            for col in range(row % 2, Rows, 2):
+        for row in range(self.rows):
+            for col in range(row % 2, self.rows, 2):
                 self.board[row][col] = self.quantum_circuit.quantum_board[j]
                 self.board_color[row][col] = self.quantum_circuit.color[j]
                 j += 1
@@ -41,48 +45,52 @@ class Board:
                     self.board_color[row][col] = 0
 
     def draw_squares(self, win):
-        win.fill(Board_Brown)
-        for row in range(Rows):
-            for col in range(row % 2, Rows, 2):
-                pygame.draw.rect(win, Board_White, (row * Square_Size, col * Square_Size, Square_Size, Square_Size))
-        pygame.draw.rect(win, Grey, (0, Cols * Square_Size, Cols * Square_Size, Square_Size))
+        win.fill(Grey)
+        for row in range(self.rows):
+            for col in range(row % 2, self.rows, 2):
+                pygame.draw.rect(win, Board_White, (row * self.square_size, col * self.square_size, self.square_size, self.square_size))
 
-        pygame.draw.rect(win, Grey, (0, Cols * Square_Size, Square_Size, Square_Size // 2))
-        pygame.draw.rect(win, Grey, ((Rows - 1) * Square_Size, Cols * Square_Size, Square_Size, Square_Size // 2))
+        bg = pygame.image.load("./img/bar.png")
+        win.blit(bg, (0, Width, Width, Bar))
 
-        self.render_text(win, (Rows // 2) * Square_Size, (Cols + 0.25) * Square_Size, 'quantum checkers', White, font_size=Square_Size*0.2)
+        self.render_text(win, (self.rows // 2) * self.square_size, self.cols * self.square_size + Bar // 2, 'quantum checkers', White,
+                         font_size=Bar * 0.5, font_path='fonts/title.ttf')
 
     def draw_buttons(self, win):
         qmode_color = Green if self.quantum_mode else Transparent_White
-        self.render_text(win, (Rows - 0.5) * Square_Size, (Cols + 0.25) * Square_Size, 'quantum moves {}'.format("on" if self.quantum_mode else "off"), qmode_color)
+        self.render_text(win, (self.rows - 0.5) * self.square_size, self.cols * self.square_size + Bar // 2,
+                         'quantum moves {}'.format("on" if self.quantum_mode else "off"), qmode_color)
 
         entangle_color = Green if self.entangle_mode else Transparent_White
-        self.render_text(win, 0.5 * Square_Size, (Cols + 0.25) * Square_Size, 'entangling {}'.format("on" if self.entangle_mode else "off"), entangle_color)
+        self.render_text(win, 0.5 * self.square_size, self.cols * self.square_size + Bar // 2,
+                         'entangling {}'.format("on" if self.entangle_mode else "off"), entangle_color)
 
     def move_sound(self):
         move_sound = pygame.mixer.Sound('sound/move.wav')
         move_sound.play()
 
-    def render_text(self, surface, x, y, text, color, font_size=Square_Size * 0.1):
-        font = pygame.freetype.SysFont('Consolas', font_size)
+    def render_text(self, surface, x, y, text, color, font_size=12, font_path=None):
+        font = pygame.freetype.SysFont("Consolas", font_size)
+        if font_path is not None:
+            font = pygame.freetype.Font(font_path, int(font_size))
         textsurface = font.render(text, fgcolor=color)[0]
         dx = int(textsurface.get_size()[0] / 2)
         dy = int(textsurface.get_size()[1] / 2)
         surface.blit(textsurface, (int(x - dx), int(y - dy)))
 
     def draw_pieces(self, win):
-        radius = int(0.3 * Square_Size)
-        for row in range(Rows):
-            for col in range(Cols):
+        radius = int(0.3 * self.square_size)
+        for row in range(self.rows):
+            for col in range(self.cols):
                 if self.board_color[row][col] == 1:
-                    x = col * Square_Size + Square_Size // 2
-                    y = row * Square_Size + Square_Size // 2
+                    x = col * self.square_size + self.square_size // 2
+                    y = row * self.square_size + self.square_size // 2
                     probability = self.board[row][col]
                     self._draw_circles(win, Blue_Piece, probability, (x, y), radius)
 
                 if self.board_color[row][col] == -1:
-                    x = col * Square_Size + Square_Size // 2
-                    y = row * Square_Size + Square_Size // 2
+                    x = col * self.square_size + self.square_size // 2
+                    y = row * self.square_size + self.square_size // 2
                     probability = self.board[row][col]
                     self._draw_circles(win, Red_Piece, probability, (x, y), radius)
 
@@ -96,10 +104,10 @@ class Board:
 
         for move in moves:
             row, col = move
-            pygame.draw.circle(win, Transparent_Grey, (col * Square_Size + Square_Size // 2 \
-                                                           , row * Square_Size + Square_Size // 2), 15)
+            pygame.draw.circle(win, Transparent_Grey, (col * self.square_size + self.square_size // 2 \
+                                                           , row * self.square_size + self.square_size // 2), 15)
 
-    def draw_pie(self, surface, cx, cy, r, color, probability):
+    def draw_pie(self, surface, cx, cy, r, color, probability, king=False):
         angle = int(probability * 360)
         p = [(cx, cy)]
         for n in range(0, angle):
@@ -110,11 +118,16 @@ class Board:
 
         # Draw pie segment
         if len(p) > 2:
-            pygame.gfxdraw.aapolygon(surface, p, White)
-            pygame.gfxdraw.filled_polygon(surface, p, White)
+            pygame.gfxdraw.aapolygon(surface, p, color)
+            pygame.gfxdraw.filled_polygon(surface, p, color)
 
-        pygame.gfxdraw.aacircle(surface, cx, cy, int(0.9 * r), color)
-        pygame.gfxdraw.filled_circle(surface, cx, cy, int(0.9 * r), color)
+        pygame.gfxdraw.aacircle(surface, cx, cy, int(0.9 * r), Dark_Grey)
+        pygame.gfxdraw.filled_circle(surface, cx, cy, int(0.9 * r), Dark_Grey)
+
+        if king:
+            crown = pygame.transform.scale(pygame.image.load("./img/crown.png"), (30, 30))
+            surface.blit(crown, (cx - 15, cy - r // 2 - 20))
+            # pygame.draw.circle(surface, Green, (cx, cy), int(r), width=2)
 
         self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
 
@@ -131,8 +144,8 @@ class Board:
             moves.update(self._traverse_right(row - 1, max(row - 3, -1), -1, color, right))
 
         if color == 1:
-            moves.update(self._traverse_left(row + 1, min(row + 3, Rows), 1, color, left))
-            moves.update(self._traverse_right(row + 1, min(row + 3, Rows), 1, color, right))
+            moves.update(self._traverse_left(row + 1, min(row + 3, self.rows), 1, color, left))
+            moves.update(self._traverse_right(row + 1, min(row + 3, self.rows), 1, color, right))
 
         return moves
 
@@ -165,7 +178,7 @@ class Board:
                     else:
                         moves[(r, left)] = skipped + [last[0], last[1]]
                         if color == 1:
-                            row = min(r + 3, Rows)
+                            row = min(r + 3, self.rows)
                         else:
                             row = max(r - 3, -1)
                         moves.update(self._traverse_left(r + step, row, step, color, left - 1, skipped=list(last)))
@@ -180,7 +193,7 @@ class Board:
         last = []
         where_in = -1
         for r in range(start, stop, step):
-            if right >= Cols:
+            if right >= self.cols:
                 break
             where_in += 1
             currentc = self.board_color[r][right]
@@ -204,7 +217,7 @@ class Board:
                     else:
                         moves[(r, right)] = skipped + [last[0], last[1]]
                         if color == 1:
-                            row = min(r + 3, Rows)
+                            row = min(r + 3, self.rows)
                         else:
                             row = max(r - 3, -1)
                             moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped=list(last)))
@@ -227,7 +240,7 @@ class Board:
         #         if step == -1:
         #             row = max(r - 3, 0)
         #         else:
-        #             row = min(r + 3, Rows)
+        #             row = min(r + 3, self.rows)
 
         #         moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped=last))
         #         moves.update(self._traverse_right(r + step, row, step, color, right + 1, skipped=last))
