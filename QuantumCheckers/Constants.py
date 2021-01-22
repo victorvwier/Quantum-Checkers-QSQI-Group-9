@@ -20,10 +20,6 @@ partial_collapse_config = {
     "square_size": int(800/4)
 }
 
-# gui settings
-
-
-
 # colors
 Red = (255, 0, 0)
 White = (255, 255, 255)

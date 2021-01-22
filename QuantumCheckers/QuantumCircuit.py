@@ -12,6 +12,7 @@ from qiskit.visualization import plot_histogram
 from qiskit.quantum_info.states import Statevector, partial_trace
 from qiskit import execute
 from qiskit import Aer
+import scipy.sparse as sparse
 
 backendAer = Aer.get_backend('statevector_simulator')
 

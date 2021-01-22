@@ -24,6 +24,7 @@ class Board:
         self.quantum_mode = False
         self.entangle_mode = False
         self.square_size = square_size
+        self.board_kings =  np.zeros((rows, cols))
 
         pygame.init()
         pygame.freetype.init()
@@ -43,6 +44,8 @@ class Board:
                 j += 1
                 if self.board[row][col] < 0.02:
                     self.board_color[row][col] = 0
+                    self.board_kings[row][col] = 0
+        self.check_kings()
 
     def draw_squares(self, win):
         win.fill(Grey)
@@ -80,24 +83,24 @@ class Board:
 
     def draw_pieces(self, win):
         radius = int(0.3 * self.square_size)
+        min_prob = 0.3
         for row in range(self.rows):
             for col in range(self.cols):
+                king = self.board_kings[row][col] == 1 and self.board[row][col] > min_prob
+                x = col * self.square_size + self.square_size // 2
+                y = row * self.square_size + self.square_size // 2
+                probability = self.board[row][col]
+
                 if self.board_color[row][col] == 1:
-                    x = col * self.square_size + self.square_size // 2
-                    y = row * self.square_size + self.square_size // 2
-                    probability = self.board[row][col]
-                    self._draw_circles(win, Blue_Piece, probability, (x, y), radius)
+                    self._draw_circles(win, Blue_Piece, probability, (x, y), radius, king)
 
                 if self.board_color[row][col] == -1:
-                    x = col * self.square_size + self.square_size // 2
-                    y = row * self.square_size + self.square_size // 2
-                    probability = self.board[row][col]
-                    self._draw_circles(win, Red_Piece, probability, (x, y), radius)
+                    self._draw_circles(win, Red_Piece, probability, (x, y), radius, king)
 
-    def _draw_circles(self, surface, color, probability, center, radius):
+    def _draw_circles(self, surface, color, probability, center, radius, king):
         target_rect = pygame.Rect(center, (0, 0)).inflate((radius * 2, radius * 2))
         shape_surf = pygame.Surface(target_rect.size, pygame.SRCALPHA)
-        self.draw_pie(shape_surf, radius, radius, radius, color, probability)
+        self.draw_pie(shape_surf, radius, radius, radius, color, probability, king=king)
         surface.blit(shape_surf, target_rect)
 
     def draw_possible_moves(self, win, moves):
@@ -130,6 +133,14 @@ class Board:
             # pygame.draw.circle(surface, Green, (cx, cy), int(r), width=2)
 
         self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
+        
+    def check_kings(self):
+        for tile_col in range(0,self.cols,2):
+            if self.board_color[0][tile_col] == -1:
+                self.board_kings[0][tile_col] = 1
+        for tile_col in range(1,self.cols,2):
+            if self.board_color[self.rows-1][tile_col] == 1:
+                self.board_kings[self.rows-1][tile_col] = 1
 
     def check_valid_moves(self, selected_piece):
         moves = {}
@@ -139,15 +150,16 @@ class Board:
         color = self.board_color[selected_piece[0]][selected_piece[1]]
         # self.board_for_val_moves(selected_piece,color)
 
-        if color == -1:
+        if color == -1 or self.board_kings[selected_piece]:
             moves.update(self._traverse_left(row - 1, max(row - 3, -1), -1, color, left))
             moves.update(self._traverse_right(row - 1, max(row - 3, -1), -1, color, right))
 
-        if color == 1:
+        if color == 1 or self.board_kings[selected_piece]:
             moves.update(self._traverse_left(row + 1, min(row + 3, self.rows), 1, color, left))
             moves.update(self._traverse_right(row + 1, min(row + 3, self.rows), 1, color, right))
 
         return moves
+    
 
     def _traverse_left(self, start, stop, step, color, left, skipped=[]):
         moves = {}
