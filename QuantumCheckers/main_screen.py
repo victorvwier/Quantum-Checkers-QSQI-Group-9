@@ -165,6 +165,7 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
+                    self.board.quantum_circuit.append_to_full_circuit(last=True)
                     self.board.quantum_circuit.draw_circuit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     pos = pygame.mouse.get_pos()

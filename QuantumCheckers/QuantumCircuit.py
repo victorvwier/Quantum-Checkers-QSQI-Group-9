@@ -27,6 +27,8 @@ class Quantumcircuit:
         self.backend = backend
         self.ent_tracker = []
         self.ent_counter = np.zeros((self.numb))
+        self.full_circuit = self.circuit.copy()
+        self.circuit2 = QuantumCircuit(self.numb, self.numb)
         
         for i in range(self.numb):
             self.ent_tracker.append([])
@@ -175,9 +177,20 @@ class Quantumcircuit:
         self.circuit = circuit2.copy()
         self.ent_tracker = hulplist
         self.ent_counter = np.zeros(self.numb)
-
+        
+    def append_to_full_circuit(self, last=False):
+        if self.numb < 10:
+            self.full_circuit = self.full_circuit + self.circuit+self.circuit2
+        else:
+            self.full_circuit = self.full_circuit + self.circuit
+            if not last:
+                for i in self.numb:
+                    self.full_circuit.initialize([1,0],i)
+                self.full_circuit.barrier()
+        
+        
     def draw_circuit(self):
-        self.circuit.draw(output='mpl')
+        self.full_circuit.draw(output='mpl',justify='right',plot_barriers=False)
 
     def full_collapse(self, attacker, defender, behind):
         qi_job = execute(self.circuit, backend=self.backend, shots=1)
@@ -208,12 +221,14 @@ class Quantumcircuit:
         self.circuit.measure(attacker, attacker)
         self.circuit.measure(defender, defender)
         self.circuit.measure(behind, behind)
-        circuit2 = QuantumCircuit(self.numb, self.numb)
+        self.circuit2 = QuantumCircuit(self.numb, self.numb)
 
         result = execute(self.circuit, backendAer).result()
         out_state = result.get_statevector()
-        circuit2.initialize(out_state, np.arange(self.numb))
-        self.circuit = circuit2.copy()
+        
+        self.circuit2.initialize(out_state, np.arange(self.numb))
+        self.append_to_full_circuit()
+        self.circuit = self.circuit2.copy()
 
     def get_probability_exact2(self):
         init_state = self.numb * '0'
@@ -223,17 +238,6 @@ class Quantumcircuit:
         probabilities = np.matmul(np.transpose(self.binary_array), full_prob)
         return np.flipud(probabilities)
 
-    def collapse(self, attacker, defender):
-
-        qi_job = execute(self.circuit, backend=self.backend, shots=1)
-        qi_result = qi_job.result()
-        string_repr = qi_result.get_memory(self.circuit)
-        a, b = int(string_repr[0][-defender - 1]), int(string_repr[0][-attacker - 1])
-        print(a, b)
-
-        self.circuit.initialize([not (a), a], [attacker])
-        self.circuit.initialize([not (b), b], [defender])
-        return a, b
 
     def remove_collapsed_piece(self, piece):
         self.circuit.x(piece)
