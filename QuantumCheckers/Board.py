@@ -65,7 +65,7 @@ class Board:
 
         self.render_text(self.screen, (self.rows // 2) * self.square_size, self.cols * self.square_size + Bar // 2,
                          'quantum checkers', White,
-                         font_size=Bar * 0.5, font_path='fonts/title.ttf')
+                         font_size=Bar * 0.45, font_path='fonts/title.ttf')
 
     def draw_buttons(self):
         qmode_color = Green if self.quantum_mode else Transparent_White
