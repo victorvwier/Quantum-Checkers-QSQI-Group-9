@@ -1,7 +1,7 @@
 import pygame
 
 from Q_inspire_connection import fix_connection
-from Constants import Width, Bar, Height
+from Constants import Width, Bar, Height, full_collapse_config
 from Board import Board
 
 
@@ -196,7 +196,7 @@ class Game:
 
 if __name__ == "__main__":
     screen = pygame.display.set_mode((Width, Height), pygame.DOUBLEBUF, 32)
-    game = Game(screen)
+    game = Game(screen, full_collapse_config)
     pygame.display.set_caption('Quantum checkers')
     icon = pygame.image.load('./img/icon.png')
     pygame.display.set_icon(icon)
