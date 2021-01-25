@@ -48,7 +48,6 @@ class Board:
                     self.board_color[row][col] = 0
                     self.board_kings[row][col] = 0
         self.check_kings()
-        print(self.quantum_circuit.ent_tracker)
 
 
     def draw_squares(self, win):
@@ -190,7 +189,7 @@ class Board:
                     break
                 elif currentc == color and len(last) == 0 and currentp < 0.98 \
                         and len(skipped) == 0 and self.board_kings[r][left] == self.board_kings[sel] \
-                        and self.ent_counter[sel] < 2:
+                        and self.ent_counter[sel] < 2 and self.ent_counter[r][left] < 2:
 
                     moves[(r, left)] = last
                     break
@@ -230,7 +229,7 @@ class Board:
                     break
                 elif currentc == color and len(last) == 0 and currentp < 0.98 \
                         and len(skipped) == 0 and self.board_kings[r][right] == self.board_kings[sel] \
-                        and self.ent_counter[sel] < 2:
+                        and self.ent_counter[sel] < 2 and self.ent_counter[r][right] < 2:
 
                     moves[(r, right)] = last
                     break

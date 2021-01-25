@@ -147,7 +147,6 @@ class Quantumcircuit:
         self.color[new_pos] = self.color[old_pos]
         
         if len(old) == 1 and old == new:
-            print('aangekomen')
             self.circuit.append(self.revSqSwap,(old_pos,new_pos))
             self.circuit.rx(-np.pi/3,new_pos)
             self.circuit.x(old_pos)
@@ -230,7 +229,6 @@ class Quantumcircuit:
 
         a, b, c = int(array_repr[attacker]), int(array_repr[defender]), \
                   int(array_repr[behind])
-        print(a, b, c)
         self.new_initialization(array_repr)
         
         
