@@ -127,7 +127,13 @@ class Game:
             self.board.quantum_circuit.c_empty(self.convert_to_Q(self.selected_piece), self.convert_to_Q(new_position))
         else:
             self.board.quantum_circuit.c_empty(self.convert_to_Q(other), self.convert_to_Q(new_position))
-
+            
+    def perform_q_empty(self,row,col):
+        new_position = (row, col)
+        self.board.board_kings[new_position]= self.board.board_kings[self.selected_piece]
+        self.board.quantum_circuit.q_empty((self.convert_to_Q(self.selected_piece), self.convert_to_Q(new_position)))
+            
+        
     def perform_c_own_color(self, row, col, failed_move):
         new_position = (row, col)
         if self.board.board[self.selected_piece] > 0.98:
@@ -139,18 +145,40 @@ class Game:
 
         self.board.board_kings[new_position] = self.board.board_kings[self.selected_piece]
         return failed_move
+    
+    def perform_q_own_color(self,row,col):
+        new_position = (row, col)
+        if self.board.board[self.selected_piece] > 0.98:
+            self.board.quantum_circuit.q_empty(self.convert_to_Q(self.selected_piece),
+                                                     self.convert_to_Q(new_position))
+        else:
+            self.board.quantum_circuit.q_entangled \
+                (self.convert_to_Q(self.selected_piece), self.convert_to_Q(new_position))
+        
 
     def perform_q_move(self, row, col):
-        self.new_pos = (row, col)
-        self.board.quantum_circuit.q_empty(self.convert_to_Q(self.selected_piece), \
-                                      self.convert_to_Q(self.new_pos))
-        self.board.board_kings[self.new_pos] = self.board.board_kings[self.selected_piece]
-        self.selected = 0
-        self.q_counter = 0
-        self.turn = -self.turn
-
+        if self.board.board_color[row][col] == 0:
+                self.perform_q_empty(row, col)
+        elif self.board.board_color[row][col] == self.turn and self.board.board[row][col] < 0.9:
+                self.perform_q_own_color(row, col)
+        
         self.board.update_board()
+        self.selected = 0
+        self.turn = -self.turn
+        self.update()
         self.board.move_sound()
+        
+        
+        # self.new_pos = (row, col)
+        # self.board.quantum_circuit.q_empty(self.convert_to_Q(self.selected_piece), \
+        #                               self.convert_to_Q(self.new_pos))
+        # self.board.board_kings[self.new_pos] = self.board.board_kings[self.selected_piece]
+        # self.selected = 0
+        # self.q_counter = 0
+        # self.turn = -self.turn
+
+        # self.board.update_board()
+        # self.board.move_sound()
 
     def move_allowed(self, row, col):
         return (row, col) in self.pos_moves

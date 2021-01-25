@@ -207,8 +207,7 @@ class Board:
                         else:
                             row = max(r - 3, -1)
                         moves.update(self._traverse_left(r + step, row, step, color, left - 1, sel, skipped=list(last)))
-                        moves.update(
-                            self._traverse_right(r + step, row, step, color, left + 1, sel, skipped=list(last)))
+                        moves.update(self._traverse_right(r + step, row, step, color, left + 1, sel, skipped=list(last)))
 
             left -= 1
 

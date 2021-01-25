@@ -90,6 +90,9 @@ class Quantumcircuit:
         if len(old) == 1 and old == new:
             self.circuit.append(self.revSqSwap,(old_pos,new_pos))
             self.ent_tracker[old_pos] = []
+            
+            self.ent_counter[old_pos] -= 1
+            self.ent_counter[new_pos] -= 1
         elif len(old) == 1:
             ent_with = []
             partner = []
@@ -120,10 +123,22 @@ class Quantumcircuit:
         return failed_move
             
             
-            
+    def q_empty(self,old_pos,new_pos):
+        self.circuit.append(self.SqSwap, (old_pos, new_pos))
+        self.color[new_pos] = self.color[old_pos]
+        
+        deducer = self.ent_tracker[old_pos]
+        while type(deducer[0]) != int:
+            deducer = deducer[0]
+        for numbers in deducer:    
+            self.ent_tracker[new_pos].append(numbers)
+        
+        self.ent_counter[new_pos] = self.ent_counter[old_pos] + 1    
+        self.ent_counter[old_pos] += 1
+    
 
 
-    def q_empty(self, old_pos, new_pos):
+    def q_entangled(self, old_pos, new_pos):
         old = self.ent_tracker[old_pos]
         new = self.ent_tracker[new_pos]
         # self.circuit.swap(old_pos,new_pos1)
@@ -131,16 +146,10 @@ class Quantumcircuit:
         self.circuit.append(self.SqSwap, (old_pos, new_pos))
         self.color[new_pos] = self.color[old_pos]
         
-        if self.ent_counter[old_pos] == 0 or self.ent_counter[new_pos] == 0:
-            deducer = self.ent_tracker[old_pos]
-            while type(deducer[0]) != int:
-                deducer = deducer[0]
-            for numbers in deducer:    
-                self.ent_tracker[new_pos].append(numbers)
+        if len(old) == 1 and old == new:
+            pass #1/3pi rotatie
             
-            self.ent_counter[new_pos] = self.ent_counter[old_pos] + 1    
-            self.ent_counter[old_pos] += 1
-        else:
+        elif len(old) == 1:
             ent_with = []
             partner = []
             for i, lists in enumerate (self.ent_tracker):
@@ -151,10 +160,23 @@ class Quantumcircuit:
             ent_with.remove(old_pos)
             partner.remove(new_pos)
             
-            self.ent_counter[new_pos] += 1
-            self.ent_counter[old_pos] += 1
-            self.ent_counter[ent_with[0]] += 1
-            self.ent_counter[partner[0]] += 1
+            if len(ent_with) <=1:
+                self.circuit.x(ent_with[0])
+                pass #csqswap
+                self.circuit.x(ent_with[0])
+                    
+                self.ent_counter[new_pos] += 1
+                self.ent_counter[old_pos] += 1
+                self.ent_counter[ent_with[0]] += 1
+                self.ent_counter[partner[0]] += 1
+                
+        else:
+            print('ERROR!!!!!')
+            
+            # self.ent_counter[new_pos] += 1
+            # self.ent_counter[old_pos] += 1
+            # self.ent_counter[ent_with[0]] += 1
+            # self.ent_counter[partner[0]] += 1
         
         
 
@@ -180,11 +202,13 @@ class Quantumcircuit:
         
     def append_to_full_circuit(self, last=False):
         if self.numb < 10:
-            self.full_circuit = self.full_circuit + self.circuit+self.circuit2
+            self.full_circuit = self.full_circuit + self.circuit
+            self.full_circuit.barrier()
+            
         else:
             self.full_circuit = self.full_circuit + self.circuit
             if not last:
-                for i in self.numb:
+                for i in range(self.numb):
                     self.full_circuit.initialize([1,0],i)
                 self.full_circuit.barrier()
         
@@ -196,6 +220,7 @@ class Quantumcircuit:
         qi_job = execute(self.circuit, backend=self.backend, shots=1)
         qi_result = qi_job.result()
 
+        self.append_to_full_circuit()
         string_repr = qi_result.get_memory(self.circuit)
         array_repr = np.flipud(np.array(list(string_repr[0])))
 
@@ -221,7 +246,7 @@ class Quantumcircuit:
         self.circuit.measure(attacker, attacker)
         self.circuit.measure(defender, defender)
         self.circuit.measure(behind, behind)
-        self.circuit2 = QuantumCircuit(self.numb, self.numb)
+        self.circuit2 = QuantumCircuit(self.numb, self.numb, name='measurement')
 
         result = execute(self.circuit, backendAer).result()
         out_state = result.get_statevector()
