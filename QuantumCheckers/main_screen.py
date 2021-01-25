@@ -1,7 +1,7 @@
 import pygame
 
 from Q_inspire_connection import fix_connection
-from Constants import Width, Bar, Height, full_collapse_config
+from Constants import Width, Bar, Height, full_collapse_config, partial_collapse_config
 from Board import Board
 
 
@@ -99,6 +99,33 @@ class Game:
                     self.board.update_board()
                     suc_a, suc_b, suc_c = round(self.board.board[attacker]), round(self.board.board[defender]), round(
                         self.board.board[behind])
+                    
+                    red_ent = []
+                    blue_ent = []
+                    for row in range(self.rows):
+                        for col in range(row % 2, self.rows, 2):
+                            if self.board.board[row][col] == 1:
+                                self.board.quantum_circuit.ent_tracker[self.convert_to_Q((row,col))].append(self.convert_to_Q(row,col))
+                            elif 0.02 < self.board.board[row][col] < 0.9 and self.board.board_color[row][col] == 1:
+                                if len(blue_ent) == 0:
+                                    blue_n = self.convert_to_Q((row,col))
+                                blue_ent.append(self.convert_to_Q((row,col)))
+                            elif 0.02 < self.board.board[row][col] < 0.9 and self.board.board_color[row][col] == -1:
+                                if len(red_ent) == 0:
+                                    red_n = self.convert_to_Q((row,col))
+                                red_ent.append(self.convert_to_Q((row,col)))
+                                
+                    for tile in blue_ent:
+                        self.board.quantum_circuit.ent_tracker[tile].append(blue_n)
+                        self.board.quantum_circuit.ent_counter[tile] = len(blue_ent) // 2
+                        
+                    for tile in red_ent:
+                        self.board.quantum_circuit.ent_tracker[tile].append(red_n)
+                        self.board.quantum_circuit.ent_counter[tile] = len(red_ent) // 2
+                        
+                        
+
+                            
 
                 if suc_a == 0:
                     failed_attack = True
@@ -131,7 +158,7 @@ class Game:
     def perform_q_empty(self,row,col):
         new_position = (row, col)
         self.board.board_kings[new_position]= self.board.board_kings[self.selected_piece]
-        self.board.quantum_circuit.q_empty((self.convert_to_Q(self.selected_piece), self.convert_to_Q(new_position)))
+        self.board.quantum_circuit.q_empty(self.convert_to_Q(self.selected_piece), self.convert_to_Q(new_position))
             
         
     def perform_c_own_color(self, row, col, failed_move):
@@ -225,7 +252,7 @@ class Game:
 
 if __name__ == "__main__":
     screen = pygame.display.set_mode((Width, Height), pygame.DOUBLEBUF, 32)
-    game = Game(screen, full_collapse_config)
+    game = Game(screen, partial_collapse_config)
     pygame.display.set_caption('Quantum checkers')
     icon = pygame.image.load('./img/icon.png')
     pygame.display.set_icon(icon)

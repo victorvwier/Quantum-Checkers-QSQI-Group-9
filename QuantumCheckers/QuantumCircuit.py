@@ -64,6 +64,7 @@ class Quantumcircuit:
         self.SqSwap.s(1)
         self.SqSwap.sdg(0)
         self.revSqSwap = self.SqSwap.reverse_ops()
+        self.cSqSwap = self.SqSwap.control()
 
     def construct_binarray(self):
         tot_numb = int(2 ** self.numb)
@@ -143,11 +144,14 @@ class Quantumcircuit:
         new = self.ent_tracker[new_pos]
         # self.circuit.swap(old_pos,new_pos1)
         # self.color[old_pos],self.color[new_pos1]=0,self.color[old_pos]
-        self.circuit.append(self.SqSwap, (old_pos, new_pos))
         self.color[new_pos] = self.color[old_pos]
         
         if len(old) == 1 and old == new:
-            pass #1/3pi rotatie
+            print('aangekomen')
+            self.circuit.append(self.revSqSwap,(old_pos,new_pos))
+            self.circuit.rx(-np.pi/3,new_pos)
+            self.circuit.x(old_pos)
+            self.circuit.cnot(new_pos,old_pos)
             
         elif len(old) == 1:
             ent_with = []
@@ -162,7 +166,7 @@ class Quantumcircuit:
             
             if len(ent_with) <=1:
                 self.circuit.x(ent_with[0])
-                pass #csqswap
+                self.circuit.append(self.cSqSwap,(ent_with[0],old_pos,new_pos))
                 self.circuit.x(ent_with[0])
                     
                 self.ent_counter[new_pos] += 1
@@ -228,6 +232,8 @@ class Quantumcircuit:
                   int(array_repr[behind])
         print(a, b, c)
         self.new_initialization(array_repr)
+        
+        
         return a, b, c
 
         # histogram = qi_result.get_counts(self.circuit)
@@ -254,6 +260,14 @@ class Quantumcircuit:
         self.circuit2.initialize(out_state, np.arange(self.numb))
         self.append_to_full_circuit()
         self.circuit = self.circuit2.copy()
+        self.ent_counter = np.zeros(self.numb)
+        
+        hulplist = []
+        for i in range(self.numb):
+            hulplist.append([])
+            
+        self.ent_tracker = hulplist
+            
 
     def get_probability_exact2(self):
         init_state = self.numb * '0'

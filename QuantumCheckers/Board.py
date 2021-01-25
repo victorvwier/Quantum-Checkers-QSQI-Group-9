@@ -48,7 +48,8 @@ class Board:
                     self.board_color[row][col] = 0
                     self.board_kings[row][col] = 0
         self.check_kings()
-        print(self.quantum_circuit.ent_counter)
+        print(self.quantum_circuit.ent_tracker)
+
 
     def draw_squares(self, win):
         win.fill(Grey)
@@ -88,10 +89,9 @@ class Board:
 
     def draw_pieces(self, win):
         radius = int(0.3 * self.square_size)
-        min_prob = 0.3
         for row in range(self.rows):
             for col in range(self.cols):
-                king = self.board_kings[row][col] == 1 and self.board[row][col] > min_prob
+                king = self.board_kings[row][col]
                 x = col * self.square_size + self.square_size // 2
                 y = row * self.square_size + self.square_size // 2
                 probability = self.board[row][col]
@@ -142,9 +142,9 @@ class Board:
     def draw_double_ent(self, win):
         for row in range(self.rows):
             for col in range(self.cols):
-                if self.ent_counter[row][col] == 2:
+                if self.ent_counter[row][col] >= 2:
                     pygame.draw.circle(win, Red, (col * self.square_size + self.square_size // 2,
-                                                  row * self.square_size + self.square_size // 2 + self.square_size / 6), 8)
+                                                  row * self.square_size + self.square_size // 2 + self.square_size / 6), 5)
 
     def check_kings(self):
         for tile_col in range(0, self.cols, 2):
