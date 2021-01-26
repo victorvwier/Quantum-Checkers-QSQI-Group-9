@@ -12,7 +12,8 @@ import math
 
 
 class Board:
-    def __init__(self, backend, rows, cols, piece_rows, square_size):
+    def __init__(self, backend, screen, rows, cols, piece_rows, square_size):
+        self.screen = screen
         self.rows = rows
         self.cols = cols
         self.piece_rows = piece_rows
@@ -26,6 +27,7 @@ class Board:
         self.square_size = square_size
         self.board_kings = np.zeros((rows, cols))
         self.ent_counter = np.zeros((rows, cols))
+        self.winner = 0
 
         pygame.init()
         pygame.freetype.init()
@@ -48,34 +50,52 @@ class Board:
                     self.board_color[row][col] = 0
                     self.board_kings[row][col] = 0
         self.check_kings()
+        self.check_win()
 
 
-    def draw_squares(self, win):
-        win.fill(Grey)
+    def draw_squares(self):
+        self.screen.fill(Grey)
         for row in range(self.rows):
             for col in range(row % 2, self.rows, 2):
-                pygame.draw.rect(win, Board_White,
+                pygame.draw.rect(self.screen, Board_White,
                                  (row * self.square_size, col * self.square_size, self.square_size, self.square_size))
 
         bg = pygame.image.load("./img/bar.png")
-        win.blit(bg, (0, Width, Width, Bar))
+        self.screen.blit(bg, (0, Width, Width, Bar))
 
-        self.render_text(win, (self.rows // 2) * self.square_size, self.cols * self.square_size + Bar // 2,
+        self.render_text(self.screen, (self.rows // 2) * self.square_size, self.cols * self.square_size + Bar // 2,
                          'quantum checkers', White,
-                         font_size=Bar * 0.5, font_path='fonts/title.ttf')
+                         font_size=Bar * 0.45, font_path='fonts/title.ttf')
 
-    def draw_buttons(self, win):
+    def draw_buttons(self):
         qmode_color = Green if self.quantum_mode else Transparent_White
-        self.render_text(win, (self.rows - 0.5) * self.square_size, self.cols * self.square_size + Bar // 2,
+        self.render_text(self.screen, (self.rows - 0.5) * self.square_size, self.cols * self.square_size + Bar // 2,
                          'quantum moves {}'.format("on" if self.quantum_mode else "off"), qmode_color)
 
         entangle_color = Green if self.entangle_mode else Transparent_White
-        self.render_text(win, 0.5 * self.square_size, self.cols * self.square_size + Bar // 2,
+        self.render_text(self.screen, 0.5 * self.square_size, self.cols * self.square_size + Bar // 2,
                          'entangling {}'.format("on" if self.entangle_mode else "off"), entangle_color)
 
     def move_sound(self):
         move_sound = pygame.mixer.Sound('sound/move.wav')
         move_sound.play()
+        self.check_win()
+        if self.winner != 0:
+            win_sound = pygame.mixer.Sound('sound/win_sound.wav')
+            win_sound.set_volume(0.75)
+            win_sound.play()
+
+    def draw_win_text(self):
+        if self.winner != 0:
+            screen_rect = self.screen.get_rect()
+            see_through = self.screen.convert_alpha()
+            see_through.fill((20, 20, 20, 150))
+            see_through_rect = see_through.get_rect(bottomleft=(0, screen_rect.h - Bar))
+            self.screen.blit(see_through, see_through_rect)
+            text = '{} won!'.format("Red" if self.winner == -1 else "Blue")
+            color = pygame.Color("red") if self.winner == -1 else pygame.Color("blue")
+            self.render_text(self.screen, (self.rows // 2) * self.square_size, (self.cols // 2) * self.square_size,
+                            text, color, font_size=Bar, font_path='fonts/title.ttf')
 
     def render_text(self, surface, x, y, text, color, font_size=12, font_path=None):
         font = pygame.freetype.SysFont("Consolas", font_size)
@@ -86,7 +106,7 @@ class Board:
         dy = int(textsurface.get_size()[1] / 2)
         surface.blit(textsurface, (int(x - dx), int(y - dy)))
 
-    def draw_pieces(self, win):
+    def draw_pieces(self):
         radius = int(0.3 * self.square_size)
         for row in range(self.rows):
             for col in range(self.cols):
@@ -96,10 +116,10 @@ class Board:
                 probability = self.board[row][col]
 
                 if self.board_color[row][col] == 1:
-                    self._draw_circles(win, Blue_Piece, probability, (x, y), radius, king)
+                    self._draw_circles(self.screen, Blue_Piece, probability, (x, y), radius, king)
 
                 if self.board_color[row][col] == -1:
-                    self._draw_circles(win, Red_Piece, probability, (x, y), radius, king)
+                    self._draw_circles(self.screen, Red_Piece, probability, (x, y), radius, king)
 
     def _draw_circles(self, surface, color, probability, center, radius, king):
         target_rect = pygame.Rect(center, (0, 0)).inflate((radius * 2, radius * 2))
@@ -107,11 +127,11 @@ class Board:
         self.draw_pie(shape_surf, radius, radius, radius, color, probability, king=king)
         surface.blit(shape_surf, target_rect)
 
-    def draw_possible_moves(self, win, moves):
+    def draw_possible_moves(self, moves):
 
         for move in moves:
             row, col = move
-            pygame.draw.circle(win, Transparent_Grey, (col * self.square_size + self.square_size // 2 \
+            pygame.draw.circle(self.screen, Transparent_Grey, (col * self.square_size + self.square_size // 2 \
                                                            , row * self.square_size + self.square_size // 2), 15)
 
     def draw_pie(self, surface, cx, cy, r, color, probability, king=False):
@@ -138,11 +158,11 @@ class Board:
 
         self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
 
-    def draw_double_ent(self, win):
+    def draw_double_ent(self):
         for row in range(self.rows):
             for col in range(self.cols):
                 if self.ent_counter[row][col] >= 2:
-                    pygame.draw.circle(win, Red, (col * self.square_size + self.square_size // 2,
+                    pygame.draw.circle(self.screen, Red, (col * self.square_size + self.square_size // 2,
                                                   row * self.square_size + self.square_size // 2 + self.square_size / 6), 5)
 
     def check_kings(self):
@@ -253,3 +273,13 @@ class Board:
             right += 1
 
         return moves
+
+    def check_win(self):
+        if np.count_nonzero(self.board_color == -1) == 0:
+            self.winner = 1
+            print("blue won")
+        elif np.count_nonzero(self.board_color == 1) == 0:
+            self.winner = -1
+            print("red won")
+        else:
+            print("game continues!\n", self.board_color)

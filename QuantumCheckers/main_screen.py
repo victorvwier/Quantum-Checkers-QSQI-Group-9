@@ -21,7 +21,7 @@ class Game:
         self.piece_rows = game_config["piece_rows"]
         self.rows = game_config["rows"]
         self.cols = game_config["cols"]
-        self.board = Board(self.backend, self.rows, self.cols, self.piece_rows, self.sq_size)
+        self.board = Board(self.backend, self.screen, self.rows, self.cols, self.piece_rows, self.sq_size)
         self.board.update_board()
 
     def get_row_col_from_mouse(self, pos):
@@ -31,12 +31,13 @@ class Game:
         return row, col
 
     def update(self):
-        self.board.draw_squares(self.screen)
-        self.board.draw_pieces(self.screen)
-        self.board.draw_buttons(self.screen)
-        self.board.draw_double_ent(self.screen)
+        self.board.draw_squares()
+        self.board.draw_pieces()
+        self.board.draw_buttons()
+        self.board.draw_double_ent()
+        self.board.draw_win_text()
         if self.selected != 0:
-            self.board.draw_possible_moves(self.screen, self.pos_moves)
+            self.board.draw_possible_moves(self.pos_moves)
         pygame.display.update()
 
     def convert_to_Q(self, c_pos):
