@@ -52,7 +52,6 @@ class Board:
         self.check_kings()
         self.check_win()
 
-
     def draw_squares(self):
         self.screen.fill(Grey)
         for row in range(self.rows):
@@ -95,7 +94,7 @@ class Board:
             text = '{} won!'.format("Red" if self.winner == -1 else "Blue")
             color = pygame.Color("red") if self.winner == -1 else pygame.Color("blue")
             self.render_text(self.screen, (self.rows // 2) * self.square_size, (self.cols // 2) * self.square_size,
-                            text, color, font_size=Bar, font_path='fonts/title.ttf')
+                             text, color, font_size=Bar, font_path='fonts/title.ttf')
 
     def render_text(self, surface, x, y, text, color, font_size=12, font_path=None):
         font = pygame.freetype.SysFont("Consolas", font_size)
@@ -132,7 +131,8 @@ class Board:
         for move in moves:
             row, col = move
             pygame.draw.circle(self.screen, Transparent_Grey, (col * self.square_size + self.square_size // 2 \
-                                                           , row * self.square_size + self.square_size // 2), 15)
+                                                                   , row * self.square_size + self.square_size // 2),
+                               15)
 
     def draw_pie(self, surface, cx, cy, r, color, probability, king=False):
         angle = int(probability * 360)
@@ -152,18 +152,22 @@ class Board:
         pygame.gfxdraw.filled_circle(surface, cx, cy, int(0.9 * r), Dark_Grey)
 
         if king:
-            crown = pygame.transform.scale(pygame.image.load("./img/crown.png"), (30, 30))
-            surface.blit(crown, (cx - 15, cy - r // 2 - 20))
+            self.render_text(surface, cx,
+                             cy - r//2, "♛", pygame.Color("White"), font_size=self.square_size // 6.5, font_path="./fonts/symbols.ttf")
+            # crown = pygame.transform.scale(pygame.image.load("./img/crown.png"), (30, 30))
+            # surface.blit(crown, (cx - 15, cy - r // 2 - 20))
             # pygame.draw.circle(surface, Green, (cx, cy), int(r), width=2)
 
-        self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
+        self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White, font_size=self.square_size//10)
 
     def draw_double_ent(self):
         for row in range(self.rows):
             for col in range(self.cols):
                 if self.ent_counter[row][col] >= 2:
-                    pygame.draw.circle(self.screen, Red, (col * self.square_size + self.square_size // 2,
-                                                  row * self.square_size + self.square_size // 2 + self.square_size / 6), 5)
+                    self.render_text(self.screen, col * self.square_size + self.square_size // 2,
+                                     row * self.square_size + self.square_size // 2 + self.square_size / 6,
+                                     "☍", pygame.Color("White"),
+                                     font_size=self.square_size // 6.5, font_path="./fonts/symbols.ttf")
 
     def check_kings(self):
         for tile_col in range(0, self.cols, 2):
@@ -226,7 +230,8 @@ class Board:
                         else:
                             row = max(r - 3, -1)
                         moves.update(self._traverse_left(r + step, row, step, color, left - 1, sel, skipped=list(last)))
-                        moves.update(self._traverse_right(r + step, row, step, color, left + 1, sel, skipped=list(last)))
+                        moves.update(
+                            self._traverse_right(r + step, row, step, color, left + 1, sel, skipped=list(last)))
 
             left -= 1
 
