@@ -3,23 +3,31 @@ import pygame.gfxdraw
 import pygame.freetype
 import pygame.mixer
 
-from Constants import Rows, Cols, Piece_Rows, Square_Size, Grey, \
+from Constants import Grey, Width, \
     Board_Brown, Board_White, Red, Green, White, Black, Blue_Piece, Red_Piece, Transparent_Grey, Transparent_White, \
-    Slightly_Transparent_White
+    Slightly_Transparent_White, Bar, Dark_Grey
 from QuantumCircuit import Quantumcircuit
 import numpy as np
 import math
 
 
 class Board:
-    def __init__(self, backend):
-        self.n_tiles = Rows * Cols // 2
-        self.quantum_circuit = Quantumcircuit(Rows, Cols, Piece_Rows, backend)
-        self.board = np.zeros((Rows, Cols))
-        self.board_color = np.zeros((Rows, Cols))
-        self.white_left = self.black_left = Cols * Piece_Rows // 2
+    def __init__(self, backend, screen, rows, cols, piece_rows, square_size):
+        self.screen = screen
+        self.rows = rows
+        self.cols = cols
+        self.piece_rows = piece_rows
+        self.n_tiles = rows * cols // 2
+        self.quantum_circuit = Quantumcircuit(rows, cols, piece_rows, backend)
+        self.board = np.zeros((rows, cols))
+        self.board_color = np.zeros((rows, cols))
+        self.white_left = self.black_left = cols * piece_rows // 2
         self.quantum_mode = False
         self.entangle_mode = False
+        self.square_size = square_size
+        self.board_kings = np.zeros((rows, cols))
+        self.ent_counter = np.zeros((rows, cols))
+        self.winner = 0
 
         pygame.init()
         pygame.freetype.init()
@@ -32,74 +40,101 @@ class Board:
         self.quantum_circuit.quantum_board = self.quantum_circuit.get_probability_exact2()
 
         j = 0
-        for row in range(Rows):
-            for col in range(row % 2, Rows, 2):
+        for row in range(self.rows):
+            for col in range(row % 2, self.rows, 2):
                 self.board[row][col] = self.quantum_circuit.quantum_board[j]
                 self.board_color[row][col] = self.quantum_circuit.color[j]
+                self.ent_counter[row][col] = self.quantum_circuit.ent_counter[j]
                 j += 1
                 if self.board[row][col] < 0.02:
                     self.board_color[row][col] = 0
+                    self.board_kings[row][col] = 0
+        self.check_kings()
+        self.check_win()
 
-    def draw_squares(self, win):
-        win.fill(Board_Brown)
-        for row in range(Rows):
-            for col in range(row % 2, Rows, 2):
-                pygame.draw.rect(win, Board_White, (row * Square_Size, col * Square_Size, Square_Size, Square_Size))
-        pygame.draw.rect(win, Grey, (0, Cols * Square_Size, Cols * Square_Size, Square_Size))
+    def draw_squares(self):
+        self.screen.fill(Grey)
+        for row in range(self.rows):
+            for col in range(row % 2, self.rows, 2):
+                pygame.draw.rect(self.screen, Board_White,
+                                 (row * self.square_size, col * self.square_size, self.square_size, self.square_size))
 
-        pygame.draw.rect(win, Grey, (0, Cols * Square_Size, Square_Size, Square_Size // 2))
-        pygame.draw.rect(win, Grey, ((Rows - 1) * Square_Size, Cols * Square_Size, Square_Size, Square_Size // 2))
+        bg = pygame.image.load("./img/bar.png")
+        self.screen.blit(bg, (0, Width, Width, Bar))
 
-        self.render_text(win, (Rows // 2) * Square_Size, (Cols + 0.25) * Square_Size, 'quantum checkers', White, font_size=Square_Size*0.2)
+        self.render_text(self.screen, (self.rows // 2) * self.square_size, self.cols * self.square_size + Bar // 2,
+                         'quantum checkers', White,
+                         font_size=Bar * 0.45, font_path='fonts/title.ttf')
 
-    def draw_buttons(self, win):
+    def draw_buttons(self):
         qmode_color = Green if self.quantum_mode else Transparent_White
-        self.render_text(win, (Rows - 0.5) * Square_Size, (Cols + 0.25) * Square_Size, 'quantum moves {}'.format("on" if self.quantum_mode else "off"), qmode_color)
+        self.render_text(self.screen, (self.rows - 0.5) * self.square_size, self.cols * self.square_size + Bar // 2,
+                         'quantum moves {}'.format("on" if self.quantum_mode else "off"), qmode_color)
 
         entangle_color = Green if self.entangle_mode else Transparent_White
-        self.render_text(win, 0.5 * Square_Size, (Cols + 0.25) * Square_Size, 'entangling {}'.format("on" if self.entangle_mode else "off"), entangle_color)
+        self.render_text(self.screen, 0.5 * self.square_size, self.cols * self.square_size + Bar // 2,
+                         'entangling {}'.format("on" if self.entangle_mode else "off"), entangle_color)
 
     def move_sound(self):
         move_sound = pygame.mixer.Sound('sound/move.wav')
         move_sound.play()
+        self.check_win()
+        if self.winner != 0:
+            win_sound = pygame.mixer.Sound('sound/win_sound.wav')
+            win_sound.set_volume(0.75)
+            win_sound.play()
 
-    def render_text(self, surface, x, y, text, color, font_size=Square_Size * 0.1):
-        font = pygame.freetype.SysFont('Consolas', font_size)
+    def draw_win_text(self):
+        if self.winner != 0:
+            screen_rect = self.screen.get_rect()
+            see_through = self.screen.convert_alpha()
+            see_through.fill((20, 20, 20, 150))
+            see_through_rect = see_through.get_rect(bottomleft=(0, screen_rect.h - Bar))
+            self.screen.blit(see_through, see_through_rect)
+            text = '{} won!'.format("Red" if self.winner == -1 else "Blue")
+            color = pygame.Color("red") if self.winner == -1 else pygame.Color("blue")
+            self.render_text(self.screen, (self.rows // 2) * self.square_size, (self.cols // 2) * self.square_size,
+                             text, color, font_size=Bar, font_path='fonts/title.ttf')
+
+    def render_text(self, surface, x, y, text, color, font_size=12, font_path=None):
+        font = pygame.freetype.SysFont("Consolas", font_size)
+        if font_path is not None:
+            font = pygame.freetype.Font(font_path, int(font_size))
         textsurface = font.render(text, fgcolor=color)[0]
         dx = int(textsurface.get_size()[0] / 2)
         dy = int(textsurface.get_size()[1] / 2)
         surface.blit(textsurface, (int(x - dx), int(y - dy)))
 
-    def draw_pieces(self, win):
-        radius = int(0.3 * Square_Size)
-        for row in range(Rows):
-            for col in range(Cols):
+    def draw_pieces(self):
+        radius = int(0.3 * self.square_size)
+        for row in range(self.rows):
+            for col in range(self.cols):
+                king = self.board_kings[row][col]
+                x = col * self.square_size + self.square_size // 2
+                y = row * self.square_size + self.square_size // 2
+                probability = self.board[row][col]
+
                 if self.board_color[row][col] == 1:
-                    x = col * Square_Size + Square_Size // 2
-                    y = row * Square_Size + Square_Size // 2
-                    probability = self.board[row][col]
-                    self._draw_circles(win, Blue_Piece, probability, (x, y), radius)
+                    self._draw_circles(self.screen, Blue_Piece, probability, (x, y), radius, king)
 
                 if self.board_color[row][col] == -1:
-                    x = col * Square_Size + Square_Size // 2
-                    y = row * Square_Size + Square_Size // 2
-                    probability = self.board[row][col]
-                    self._draw_circles(win, Red_Piece, probability, (x, y), radius)
+                    self._draw_circles(self.screen, Red_Piece, probability, (x, y), radius, king)
 
-    def _draw_circles(self, surface, color, probability, center, radius):
+    def _draw_circles(self, surface, color, probability, center, radius, king):
         target_rect = pygame.Rect(center, (0, 0)).inflate((radius * 2, radius * 2))
         shape_surf = pygame.Surface(target_rect.size, pygame.SRCALPHA)
-        self.draw_pie(shape_surf, radius, radius, radius, color, probability)
+        self.draw_pie(shape_surf, radius, radius, radius, color, probability, king=king)
         surface.blit(shape_surf, target_rect)
 
-    def draw_possible_moves(self, win, moves):
+    def draw_possible_moves(self, moves):
 
         for move in moves:
             row, col = move
-            pygame.draw.circle(win, Transparent_Grey, (col * Square_Size + Square_Size // 2 \
-                                                           , row * Square_Size + Square_Size // 2), 15)
+            pygame.draw.circle(self.screen, Transparent_Grey, (col * self.square_size + self.square_size // 2 \
+                                                                   , row * self.square_size + self.square_size // 2),
+                               15)
 
-    def draw_pie(self, surface, cx, cy, r, color, probability):
+    def draw_pie(self, surface, cx, cy, r, color, probability, king=False):
         angle = int(probability * 360)
         p = [(cx, cy)]
         for n in range(0, angle):
@@ -110,13 +145,37 @@ class Board:
 
         # Draw pie segment
         if len(p) > 2:
-            pygame.gfxdraw.aapolygon(surface, p, White)
-            pygame.gfxdraw.filled_polygon(surface, p, White)
+            pygame.gfxdraw.aapolygon(surface, p, color)
+            pygame.gfxdraw.filled_polygon(surface, p, color)
 
-        pygame.gfxdraw.aacircle(surface, cx, cy, int(0.9 * r), color)
-        pygame.gfxdraw.filled_circle(surface, cx, cy, int(0.9 * r), color)
+        pygame.gfxdraw.aacircle(surface, cx, cy, int(0.9 * r), Dark_Grey)
+        pygame.gfxdraw.filled_circle(surface, cx, cy, int(0.9 * r), Dark_Grey)
 
-        self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White)
+        if king:
+            self.render_text(surface, cx,
+                             cy - r//2, "♛", pygame.Color("White"), font_size=self.square_size // 6.5, font_path="./fonts/symbols.ttf")
+            # crown = pygame.transform.scale(pygame.image.load("./img/crown.png"), (30, 30))
+            # surface.blit(crown, (cx - 15, cy - r // 2 - 20))
+            # pygame.draw.circle(surface, Green, (cx, cy), int(r), width=2)
+
+        self.render_text(surface, cx, cy, "{:.2f}".format(probability), Transparent_White, font_size=self.square_size//10)
+
+    def draw_double_ent(self):
+        for row in range(self.rows):
+            for col in range(self.cols):
+                if self.ent_counter[row][col] >= 2:
+                    self.render_text(self.screen, col * self.square_size + self.square_size // 2,
+                                     row * self.square_size + self.square_size // 2 + self.square_size / 6,
+                                     "☍", pygame.Color("White"),
+                                     font_size=self.square_size // 6.5, font_path="./fonts/symbols.ttf")
+
+    def check_kings(self):
+        for tile_col in range(0, self.cols, 2):
+            if self.board_color[0][tile_col] == -1:
+                self.board_kings[0][tile_col] = 1
+        for tile_col in range(1, self.cols, 2):
+            if self.board_color[self.rows - 1][tile_col] == 1:
+                self.board_kings[self.rows - 1][tile_col] = 1
 
     def check_valid_moves(self, selected_piece):
         moves = {}
@@ -124,19 +183,20 @@ class Board:
         right = selected_piece[1] + 1
         row = selected_piece[0]
         color = self.board_color[selected_piece[0]][selected_piece[1]]
+        sel = selected_piece
         # self.board_for_val_moves(selected_piece,color)
 
-        if color == -1:
-            moves.update(self._traverse_left(row - 1, max(row - 3, -1), -1, color, left))
-            moves.update(self._traverse_right(row - 1, max(row - 3, -1), -1, color, right))
+        if color == -1 or self.board_kings[selected_piece]:
+            moves.update(self._traverse_left(row - 1, max(row - 3, -1), -1, color, left, sel))
+            moves.update(self._traverse_right(row - 1, max(row - 3, -1), -1, color, right, sel))
 
-        if color == 1:
-            moves.update(self._traverse_left(row + 1, min(row + 3, Rows), 1, color, left))
-            moves.update(self._traverse_right(row + 1, min(row + 3, Rows), 1, color, right))
+        if color == 1 or self.board_kings[selected_piece]:
+            moves.update(self._traverse_left(row + 1, min(row + 3, self.rows), 1, color, left, sel))
+            moves.update(self._traverse_right(row + 1, min(row + 3, self.rows), 1, color, right, sel))
 
         return moves
 
-    def _traverse_left(self, start, stop, step, color, left, skipped=[]):
+    def _traverse_left(self, start, stop, step, color, left, sel, skipped=[]):
         moves = {}
         last = []
         where_in = -1
@@ -152,7 +212,8 @@ class Board:
                     moves[(r, left)] = last
                     break
                 elif currentc == color and len(last) == 0 and currentp < 0.98 \
-                        and len(skipped) == 0:
+                        and len(skipped) == 0 and self.board_kings[r][left] == self.board_kings[sel] \
+                        and self.ent_counter[sel] < 2 and self.ent_counter[r][left] < 2:
 
                     moves[(r, left)] = last
                     break
@@ -165,22 +226,23 @@ class Board:
                     else:
                         moves[(r, left)] = skipped + [last[0], last[1]]
                         if color == 1:
-                            row = min(r + 3, Rows)
+                            row = min(r + 3, self.rows)
                         else:
                             row = max(r - 3, -1)
-                        moves.update(self._traverse_left(r + step, row, step, color, left - 1, skipped=list(last)))
-                        moves.update(self._traverse_right(r + step, row, step, color, left + 1, skipped=list(last)))
+                        moves.update(self._traverse_left(r + step, row, step, color, left - 1, sel, skipped=list(last)))
+                        moves.update(
+                            self._traverse_right(r + step, row, step, color, left + 1, sel, skipped=list(last)))
 
             left -= 1
 
         return moves
 
-    def _traverse_right(self, start, stop, step, color, right, skipped=[]):
+    def _traverse_right(self, start, stop, step, color, right, sel, skipped=[]):
         moves = {}
         last = []
         where_in = -1
         for r in range(start, stop, step):
-            if right >= Cols:
+            if right >= self.cols:
                 break
             where_in += 1
             currentc = self.board_color[r][right]
@@ -191,7 +253,8 @@ class Board:
                     moves[(r, right)] = last
                     break
                 elif currentc == color and len(last) == 0 and currentp < 0.98 \
-                        and len(skipped) == 0:
+                        and len(skipped) == 0 and self.board_kings[r][right] == self.board_kings[sel] \
+                        and self.ent_counter[sel] < 2 and self.ent_counter[r][right] < 2:
 
                     moves[(r, right)] = last
                     break
@@ -204,42 +267,24 @@ class Board:
                     else:
                         moves[(r, right)] = skipped + [last[0], last[1]]
                         if color == 1:
-                            row = min(r + 3, Rows)
+                            row = min(r + 3, self.rows)
                         else:
                             row = max(r - 3, -1)
-                            moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped=list(last)))
                             moves.update(
-                                self._traverse_right(r + step, row, step, color, right + 1, skipped=list(last)))
+                                self._traverse_left(r + step, row, step, color, right - 1, sel, skipped=list(last)))
+                            moves.update(
+                                self._traverse_right(r + step, row, step, color, right + 1, sel, skipped=list(last)))
 
             right += 1
 
         return moves
 
-        # if self.board[r][right]<0.95:
-        #     if skipped and not last:
-        #         break
-        #     elif skipped:
-        #         moves[(r, right)] = last + skipped
-        #     elif current == 0:
-        #         moves[(r, right)] = last
-
-        #     if last:
-        #         if step == -1:
-        #             row = max(r - 3, 0)
-        #         else:
-        #             row = min(r + 3, Rows)
-
-        #         moves.update(self._traverse_left(r + step, row, step, color, right - 1, skipped=last))
-        #         moves.update(self._traverse_right(r + step, row, step, color, right + 1, skipped=last))
-        #     break
-
-        # elif current == color:
-        #     if self.board[r][right] < 0.95:
-        #         moves[(r, right)] = last
-        #         break
-        #     else:
-        #         break
-
-        # else:
-        #     #last = [current]
-        #     last = [r,right]
+    def check_win(self):
+        if np.count_nonzero(self.board_color == -1) == 0:
+            self.winner = 1
+            print("blue won")
+        elif np.count_nonzero(self.board_color == 1) == 0:
+            self.winner = -1
+            print("red won")
+        else:
+            print("game continues!\n", self.board_color)
